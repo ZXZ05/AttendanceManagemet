@@ -9,7 +9,7 @@
           </div>
           <div class="block">
             <span class="demonstration">选择月份</span>
-            <el-date-picker v-model="checkMonth" type="month" placeholder="选择月" value-format="yyyy-MM"></el-date-picker>
+            <el-date-picker v-model="checkMonth" type="month" placeholder="选择月" value-format="YYYY-MM"></el-date-picker>
             <el-button type="primary" @click="getCheckInfo()"> 查询</el-button>
           </div>
         </div>
@@ -117,7 +117,7 @@
         </span>
       </div>
     </div>
-    <el-dialog title="全部记录" :visible.sync="dialogFormVisible" width="50%">
+    <el-dialog title="全部记录" v-model="dialogFormVisible" width="50%">
       <el-table :data="tableData" border fit highlight-current-row style="width: 100%">
         <el-table-column prop="date" label="日期"></el-table-column>
         <el-table-column prop="checkOnTime" label="签到时间"></el-table-column>
@@ -126,7 +126,7 @@
         <el-table-column prop="checkOffStatus" label="签退状态"></el-table-column>
       </el-table>
     </el-dialog>
-    <el-dialog title="工资条" :visible.sync="salaryShow" width="50%">
+    <el-dialog title="工资条" v-model="salaryShow" width="50%">
       <el-table :data="salaryTable" border fit highlight-current-row style="width: 100%">
         <el-table-column prop="month" label="月份"></el-table-column>
         <el-table-column prop="monthlySalary" label="应发工资"></el-table-column>
@@ -142,7 +142,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from '@/axios/axios'
+import { getLoginUsername } from '@/utils/auth'
 export default {
   data() {
     return {
@@ -152,7 +153,7 @@ export default {
       checkMonth: new Date(),
       form: {
         id: '',
-        employeeID: sessionStorage.getItem("username"),
+        employeeID: getLoginUsername(),
         date: '',
         remarks: '',
         time: '',

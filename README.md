@@ -37,22 +37,21 @@ AttendanceManager
 ### 后端
 
 - Java 8
-- Spring Boot 2.4.3
+- Spring Boot 2.7.18
 - Spring MVC
 - MyBatis
-- MySQL
+- MySQL Connector/J 8.0.33
 - EasyExcel
 - Maven
 
 ### 前端
 
-- Vue 2
-- Vue Router
-- Element UI
+- Vue 3
+- Vite
+- Vue Router 4
+- Element Plus
 - Axios
 - AntV G2
-- Webpack
-- vue-print-nb
 
 ## 功能模块
 
@@ -113,8 +112,8 @@ attendance_manager
 - JDK 1.8
 - Maven 3.x
 - MySQL 5.7 或 8.x
-- Node.js 6+（建议使用较旧的 Node 版本运行该 Vue 2 / Webpack 3 项目）
-- npm 3+
+- Node.js 22.12+，已适配 Node.js 24
+- npm 10+
 
 ## 后端启动
 
@@ -175,6 +174,12 @@ npm run dev
 http://localhost:9332
 ```
 
+生产构建：
+
+```bash
+npm run build
+```
+
 前端请求后端的地址配置在：
 
 ```text
@@ -210,7 +215,7 @@ http://localhost:9331
 ## 注意事项
 
 - 后端默认端口为 `9331`，前端默认端口为 `9332`。
-- 前端项目依赖较旧，若使用较新的 Node.js 版本安装或启动失败，建议切换到兼容旧版 Webpack 的 Node.js 环境。
+- 前端已从 Vue 2 / Webpack 3 升级为 Vue 3 / Vite，可在 Node.js 24 环境下运行。
 - 项目中部分中文内容可能存在编码显示异常，维护时建议统一使用 UTF-8 编码。
 - 当前登录逻辑较简单，主要适合学习、课程设计或本地演示场景。
 - `.gitignore` 已排除 `node_modules/`、`target/`、`dist/` 等依赖和构建产物。

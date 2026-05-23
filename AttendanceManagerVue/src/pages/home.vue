@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="block" style="width: 100%;">
     <el-row :gutter="16">
       <el-col :span="12">
@@ -164,7 +164,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from '@/axios/axios'
+import { getLoginUsername, isAuthenticated } from '@/utils/auth'
 export default {
   data() {
     return {
@@ -172,7 +173,7 @@ export default {
       dialogFormVisible: false,
       form: {
         id: '',
-        number: sessionStorage.getItem("username"),
+        number: getLoginUsername(),
         name: '',
         sex: '',
         birthday: '',
@@ -193,7 +194,7 @@ export default {
       noticeList: [],
       checkForm: {
         id: '',
-        employeeID: sessionStorage.getItem("username"),
+        employeeID: getLoginUsername(),
         date: '',
         remarks: '',
         time: '',
@@ -258,14 +259,12 @@ export default {
       return time < 10 ? `0${time}` : time;
     },
     getUsername() {
+      if (!isAuthenticated()) {
+        this.$router.push("/");
+        this.$message({ message: "未登录或登录信息过期", type: "error" });
+        return
+      }
       axios.post('/employee/findByNumber', this.form).then(res => {
-
-        if (!document.cookie.split(';').some(c => c.trim().startsWith('LOGIN='))) {
-
-          this.$router.push("/");
-          this.$message({ message: "未登录或登录信息过期", type: "error" });
-          return
-        }
         this.username = res.data.name;
       }).catch((e) => {
         console.log(e)
@@ -369,7 +368,7 @@ export default {
     resetCheckForm() {
       this.checkForm = {
         id: '',
-        employeeID: sessionStorage.getItem("username"),
+        employeeID: getLoginUsername(),
         date: '',
         remarks: '',
         time: '',

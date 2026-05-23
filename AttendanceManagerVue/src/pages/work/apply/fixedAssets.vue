@@ -23,7 +23,7 @@
         </div>
       </el-card>
     </div>
-    <el-dialog :title="dialogTitle" :visible.sync="dialogFormVisible">
+    <el-dialog :title="dialogTitle" v-model="dialogFormVisible">
       <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm"
         style="width:100%;" v-if="isshowForm">
         <el-form-item label="申请人" prop="employeeName">
@@ -65,14 +65,15 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from '@/axios/axios'
+import { getLoginUsername } from '@/utils/auth'
 
 export default {
   data() {
     return {
       tableData: [],
       ruleForm: {
-        employeeNumber: sessionStorage.getItem("username"),
+        employeeNumber: getLoginUsername(),
         employeeName: '',
         number: '',
         name: '',
@@ -102,7 +103,7 @@ export default {
       },
       form: {
         id: '',
-        number: sessionStorage.getItem("username"),
+        number: getLoginUsername(),
         name: '',
         sex: '',
         birthday: '',
@@ -136,7 +137,7 @@ export default {
   methods: {
     getData() {
       axios.post('/fixedasset/findByEmployeeNumber', {
-        employeeNumber: sessionStorage.getItem("username"),
+        employeeNumber: getLoginUsername(),
       }).then(res => {
         this.tableData = res.data;
         this.tableData.forEach(item => {
@@ -180,7 +181,7 @@ export default {
       this.$refs['ruleForm'].resetFields();
       this.ruleForm.employeeName = this.employeeName;
       this.ruleForm.applyTime = this.getTime();
-      this.employeeNumber = sessionStorage.getItem("username");
+      this.employeeNumber = getLoginUsername();
       this.taskTypeID = '2';
     },
     getUsername() {

@@ -102,7 +102,7 @@
       <if test="monthlySalary != null" >
         monthlySalary = #{monthlySalary},
       </if>
-      <if test="workdays != null" >
+      <if test="workDays != null" >
         workDays = #{workDays},
       </if>
       <if test="checkDays != null" >

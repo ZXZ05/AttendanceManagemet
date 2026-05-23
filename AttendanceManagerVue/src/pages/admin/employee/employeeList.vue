@@ -6,7 +6,7 @@
           <el-option v-for="item in departmentList" :key="item.id" :label="item.name" :value="item.id"></el-option>
         </el-select>
         <el-input v-model="form1.name" placeholder="请输入姓名" style="width: 200px;" class="filter-item"
-          @keyup.enter.native="handleFilter" clearable />
+          @keyup.enter="onSubmit" clearable />
         <br>
         <br>
         <el-button class="filter-item" type="primary" @click="onSubmit"> 查询</el-button>
@@ -92,7 +92,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from '@/axios/axios'
+import { isAuthenticated } from '@/utils/auth'
 export default {
   data() {
     return {
@@ -229,14 +230,12 @@ export default {
   },
   methods: {
     getData() {
+      if (!isAuthenticated()) {
+        this.$router.push("/");
+        this.$message({ message: "未登录或登录信息过期", type: "error" });
+        return
+      }
       axios.get("/employee/list").then(res => {
-
-        if (!document.cookie.split(';').some(c => c.trim().startsWith('LOGIN='))) {
-
-          this.$router.push("/");
-          this.$message({ message: "未登录或登录信息过期", type: "error" });
-          return
-        }
         this.tableData = res.data;
       })
     },
@@ -393,3 +392,4 @@ export default {
 .filter-container {
   margin-bottom: 20px;
 }</style>
+

@@ -15,7 +15,7 @@
       <el-table-column prop="quantity" label="部门人数"></el-table-column>
       <el-table-column prop="posNum" label="岗位数量"></el-table-column>
       <el-table-column label="操作" width="430" fixed="right">
-	      <template slot-scope="scope">
+	      <template #default="scope">
           <el-button type="primary" @click="getPosition(scope.row)"> 查看岗位</el-button>
 	        <el-button type="success" @click="handleUpdate(scope.row)"> 编辑</el-button>
 	        <el-button type="danger" @click="handleDelete(scope.row)"> 删除</el-button>
@@ -23,7 +23,7 @@
 	    </el-table-column>
     </el-table>
   </div>
-<el-dialog :title="dialogTitle" :visible.sync="dialogFormVisible">
+<el-dialog :title="dialogTitle" v-model="dialogFormVisible">
 	<el-form ref="form" :rules="rules" :model="form" label-position="left" label-width="120px" style="width: 420px; margin-left:50px;">
 		<el-form-item label="编号" prop="number">
 		  <el-input v-model="form.number" placeholder="请输入部门编号~"/>
@@ -44,7 +44,7 @@
     <el-button v-if="isUpdate" type="success" @click="updateData()"> 修改</el-button>
 	</div>
 </el-dialog>
-<el-dialog :title="dialogTitle2" :visible.sync="dialogFormVisible2">
+<el-dialog :title="dialogTitle2" v-model="dialogFormVisible2">
 	<el-form ref="form2" :rules="rules2" :model="form2" label-position="left" label-width="120px" style="width: 420px; margin-left:50px;">
 		<el-form-item label="编号" prop="number">
 		  <el-input v-model="form2.number" placeholder="请输入岗位编号~"/>
@@ -72,14 +72,14 @@
     <el-button v-if="isUpdate" type="success" @click="updateData2()"> 修改</el-button>
 	</div>
 </el-dialog>
-<el-dialog title="岗位列表" :visible.sync="dialogFormVisible3">
+<el-dialog title="岗位列表" v-model="dialogFormVisible3">
   <el-table :data="positionList" border fit highlight-current-row style="width: 100%">
     <el-table-column prop="number" label="岗位编号"></el-table-column>
     <el-table-column prop="name" label="岗位名称"></el-table-column>
     <el-table-column prop="monthlySalary" label="岗位薪资"></el-table-column>
     <el-table-column prop="quantity" label="在职人数"></el-table-column>
     <el-table-column label="操作" width="260" fixed="right">
-	    <template slot-scope="scope">
+	    <template #default="scope">
         <el-button type="success" @click="handleUpdate2(scope.row)"> 编辑</el-button>
         <el-button type="danger" @click="handleDelete2(scope.row)"> 删除</el-button>
 	    </template>
@@ -380,7 +380,6 @@ import axios from 'axios'
       }
     }
   }
-</script>
 </script>
 <style scoped>
   .pro-container {

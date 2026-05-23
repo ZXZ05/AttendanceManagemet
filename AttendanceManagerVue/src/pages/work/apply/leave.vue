@@ -33,7 +33,7 @@
         </div>
       </el-card>
     </div>
-    <el-dialog :title="dialogTitle" :visible.sync="dialogFormVisible" >
+    <el-dialog :title="dialogTitle" v-model="dialogFormVisible" >
       <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm"
         style="width:100%;">
         <el-form-item label="申请人" prop="name">
@@ -51,7 +51,7 @@
           <!-- <el-date-picker v-model="form.beginTime" type="datetime" placeholder="选择开始时间" style="width: 100%;"></el-date-picker> -->
           <el-col :span="11">
             <el-form-item prop="date1">
-              <el-date-picker type="date" placeholder="选择日期" v-model="ruleForm.date1" value-format="yyyy-MM-dd"
+              <el-date-picker type="date" placeholder="选择日期" v-model="ruleForm.date1" value-format="YYYY-MM-DD"
                 style="width: 100%;" :readonly="isUpdate"></el-date-picker>
             </el-form-item>
           </el-col>
@@ -70,7 +70,7 @@
           <!-- <el-date-picker v-model="form.endTime" type="datetime" placeholder="选择结束时间" style="width: 100%;"></el-date-picker> -->
           <el-col :span="11">
             <el-form-item prop="date3">
-              <el-date-picker type="date" placeholder="选择日期" v-model="ruleForm.date3" value-format="yyyy-MM-dd"
+              <el-date-picker type="date" placeholder="选择日期" v-model="ruleForm.date3" value-format="YYYY-MM-DD"
                 style="width: 100%;" :readonly="isUpdate"></el-date-picker>
             </el-form-item>
           </el-col>
@@ -116,7 +116,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from '@/axios/axios'
+import { getLoginUsername } from '@/utils/auth'
 
 export default {
   data() {
@@ -162,7 +163,7 @@ export default {
       },
       form: {
         id: '',
-        number: sessionStorage.getItem("username"),
+        number: getLoginUsername(),
         name: '',
         sex: '',
         birthday: '',
@@ -205,7 +206,7 @@ export default {
   methods: {
     getData() {
       axios.post('/leave/list', {
-        applyNumber: sessionStorage.getItem("username"),
+        applyNumber: getLoginUsername(),
       }).then(res => {
         this.tableData = res.data;
         this.tableData.forEach(item => {

@@ -11,9 +11,11 @@ import com.zpark.sb.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,83 +31,76 @@ public class CheckController {
     private EmployeeService employeeService;
 
     @ResponseBody
-    @RequestMapping(value = "/checkOn",method = RequestMethod.POST)
+    @RequestMapping(value = "/checkOn", method = RequestMethod.POST)
     public int checkOn(@RequestBody Check check) throws ParseException {
         return checkService.checkOn(check);
     }
 
     @ResponseBody
-    @RequestMapping(value = "/checkOff",method = RequestMethod.POST)
+    @RequestMapping(value = "/checkOff", method = RequestMethod.POST)
     public int checkOff(@RequestBody Check check) throws ParseException {
         return checkService.checkOff(check);
     }
 
     @ResponseBody
-    @RequestMapping(value = "/getCheckOn",method = RequestMethod.POST)
+    @RequestMapping(value = "/getCheckOn", method = RequestMethod.POST)
     public int getCheckOn(@RequestBody Check check) {
         return checkService.getCheckOn(check);
     }
 
     @ResponseBody
-    @RequestMapping(value = "/getCheckOff",method = RequestMethod.POST)
+    @RequestMapping(value = "/getCheckOff", method = RequestMethod.POST)
     public int getCheckOff(@RequestBody Check check) {
         return checkService.getCheckOff(check);
     }
 
     @ResponseBody
-    @RequestMapping(value = "/findByNumber",method = RequestMethod.POST)
-    public List<Check> findByNumber(@RequestBody Check check){
+    @RequestMapping(value = "/findByNumber", method = RequestMethod.POST)
+    public List<Check> findByNumber(@RequestBody Check check) {
         return checkService.findByNumber(check.getEmployeeID());
     }
 
     @ResponseBody
-    @RequestMapping(value = "/findByMonth",method = RequestMethod.POST)
-    public List<Check> findByMonth(@RequestBody Check check){
+    @RequestMapping(value = "/findByMonth", method = RequestMethod.POST)
+    public List<Check> findByMonth(@RequestBody Check check) {
         return checkService.findByMonth(check.getMonth());
     }
 
     @ResponseBody
-    @RequestMapping(value = "/findByNumberAndMonth",method = RequestMethod.POST)
-    public List<Check> findByNumberAndMonth(@RequestBody Check check){
+    @RequestMapping(value = "/findByNumberAndMonth", method = RequestMethod.POST)
+    public List<Check> findByNumberAndMonth(@RequestBody Check check) {
         return checkService.findByNumberAndMonth(check);
     }
 
     @ResponseBody
-    @RequestMapping(value = "/getWorkDay",method = RequestMethod.GET)
-    public int getWorkDay(){
-        return checkService.getWorkDay("2021-05");
+    @RequestMapping(value = "/getWorkDay", method = RequestMethod.GET)
+    public int getWorkDay(@RequestParam String month) {
+        return checkService.getWorkDay(month);
     }
 
     @ResponseBody
-    @RequestMapping(value = "/getCheckInfo",method = RequestMethod.POST)
-    public Check getCheckInfo(@RequestBody Check check){
+    @RequestMapping(value = "/getCheckInfo", method = RequestMethod.POST)
+    public Check getCheckInfo(@RequestBody Check check) {
         Check check1 = new Check();
         check1.setCheckDays(checkService.getCheckDayNumber(check));
         check1.setWorkDays(checkService.getWorkDay(check.getMonth()));
         check1.setLateDays(checkService.getLateDayNumber(check));
         check1.setLeaveEarlyDays(checkService.getLeaveEarlyDayNumber(check));
-        String leaveType = "";
-        leaveType = "事假";
-        check1.setLeaveDays1(checkService.getLeaveDayNumber(check,leaveType));
-        leaveType = "婚假";
-        check1.setLeaveDays2(checkService.getLeaveDayNumber(check,leaveType));
-        leaveType = "丧假";
-        check1.setLeaveDays3(checkService.getLeaveDayNumber(check,leaveType));
-        leaveType = "产假";
-        check1.setLeaveDays4(checkService.getLeaveDayNumber(check,leaveType));
-        leaveType = "陪产假";
-        check1.setLeaveDays5(checkService.getLeaveDayNumber(check,leaveType));
-        leaveType = "病假";
-        check1.setLeaveDays6(checkService.getLeaveDayNumber(check,leaveType));
+        check1.setLeaveDays1(checkService.getLeaveDayNumber(check, "事假"));
+        check1.setLeaveDays2(checkService.getLeaveDayNumber(check, "婚假"));
+        check1.setLeaveDays3(checkService.getLeaveDayNumber(check, "丧假"));
+        check1.setLeaveDays4(checkService.getLeaveDayNumber(check, "产假"));
+        check1.setLeaveDays5(checkService.getLeaveDayNumber(check, "陪产假"));
+        check1.setLeaveDays6(checkService.getLeaveDayNumber(check, "病假"));
         return check1;
     }
 
     @ResponseBody
-    @RequestMapping(value = "/getCheckList",method = RequestMethod.POST)
-    public List<Check> getCheckList(@RequestBody Check check){
+    @RequestMapping(value = "/getCheckList", method = RequestMethod.POST)
+    public List<Check> getCheckList(@RequestBody Check check) {
         List<Check> checkList = new ArrayList<>();
         List<Employee> employeeList = employeeService.getAll();
-        for(Employee item : employeeList){
+        for (Employee item : employeeList) {
             Check check1 = new Check();
             Check check2 = new Check();
             check2.setEmployeeID(item.getNumber());
@@ -123,14 +118,14 @@ public class CheckController {
         return checkList;
     }
 
-    @RequestMapping(value = "/exportExcel",method = RequestMethod.GET)
-    public void export(HttpServletResponse response,@RequestParam String month) throws IOException {
+    @RequestMapping(value = "/exportExcel", method = RequestMethod.GET)
+    public void export(HttpServletResponse response, @RequestParam String month) throws IOException {
         Check check = new Check();
         check.setDate(month);
         check.setMonth(month);
         List<Check> checkList = getCheckList(check);
         List<ExportCheck> exportCheckList = new ArrayList<>();
-        for(Check item : checkList){
+        for (Check item : checkList) {
             ExportCheck exportCheck = new ExportCheck();
             exportCheck.setEmployeeID(item.getEmployeeID());
             exportCheck.setEmployeeName(item.getEmployeeName());
@@ -141,20 +136,21 @@ public class CheckController {
             exportCheck.setLeaveEarlyDays(item.getLeaveEarlyDays());
             exportCheckList.add(exportCheck);
         }
+
+        String titleMonth = month.substring(0, 7);
+        String fileName = "员工考勤表" + titleMonth;
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setHeader("Content-disposition",
+                "attachment;filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()) + ".xlsx");
+
         ServletOutputStream out = response.getOutputStream();
         ExcelWriter writer = new ExcelWriter(out, ExcelTypeEnum.XLSX, true);
-        String fileName = "员工考勤表"+month.substring(0,7);
-        Sheet sheet = new Sheet(1, 0,ExportCheck.class);
-        //设置自适应宽度
+        Sheet sheet = new Sheet(1, 0, ExportCheck.class);
         sheet.setAutoWidth(Boolean.TRUE);
-        // 第一个 sheet 名称
-        sheet.setSheetName("员工考勤表"+month.substring(0,7));
+        sheet.setSheetName("员工考勤表" + titleMonth);
         writer.write(exportCheckList, sheet);
-        //通知浏览器以附件的形式下载处理，设置返回头要注意文件名有中文
-        response.setHeader("Content-disposition", "attachment;filename=" + new String( fileName.getBytes("gb2312"), "ISO8859-1" ) + ".xlsx");
         writer.finish();
-        response.setContentType("multipart/form-data");
-        response.setCharacterEncoding("utf-8");
         out.flush();
     }
 }

@@ -1,6 +1,8 @@
 package com.zpark.sb.service;
 
 import com.zpark.sb.dao.DepartmentDao;
+import com.zpark.sb.dao.EmployeeDao;
+import com.zpark.sb.dao.PositionDao;
 import com.zpark.sb.entity.Department;
 import com.zpark.sb.entity.Employee;
 import com.zpark.sb.entity.Position;
@@ -16,40 +18,35 @@ public class DepartmentService {
     @Autowired
     private DepartmentDao departmentDao;
     @Autowired
-    private EmployeeService employeeService;
+    private EmployeeDao employeeDao;
     @Autowired
-    private PositionService positionService;
+    private PositionDao positionDao;
 
     public int deleteById(String id) {
         Employee employee = new Employee();
         employee.setDepartmentID(id);
-        System.out.println("id:"+id);
-        System.out.println("id2:"+employee.getDepartmentID());
-        System.out.println("employee:"+employeeService.findByNameAndDepartment(employee));
-        System.out.println("size:"+employeeService.findByNameAndDepartment(employee).size());
-        if(employeeService.findByNameAndDepartment(employee).size() != 0){
+        List<Employee> employeeList = employeeDao.findByNameAndDepartment(employee);
+        if (!employeeList.isEmpty()) {
             return 1;
-        }else {
-            departmentDao.deleteById(id);
-            List<Position> positionList = positionService.findByDepartmentID(id);
-            for(Position item: positionList){
-                positionService.deleteById(item.getId());
-            }
-            return 0;
         }
+        departmentDao.deleteById(id);
+        List<Position> positionList = positionDao.findByDepartmentID(id);
+        for (Position item : positionList) {
+            positionDao.deleteById(item.getId());
+        }
+        return 0;
     }
 
     public int insert(Department department) {
         Department department1 = findByNumber(department.getNumber());
-        if(department1 != null) {
+        if (department1 != null) {
             return 1;
-        }else {
-            department.setId(UUID.randomUUID().toString());
-            department.setQuantity(0);
-            department.setPosNum(0);
-            departmentDao.insert(department);
-            return 0;
         }
+        department.setId(UUID.randomUUID().toString());
+        department.setQuantity(0);
+        department.setPosNum(0);
+        departmentDao.insert(department);
+        return 0;
     }
 
     public Department selectById(String id) {

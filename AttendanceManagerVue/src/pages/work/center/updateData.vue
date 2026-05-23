@@ -14,7 +14,8 @@
 </template>
 
 <script>
-  import axios from 'axios'
+  import axios from '@/axios/axios'
+  import { getLoginUsername } from '@/utils/auth'
   export default {
     data() {
       var validatePass = (rule, value, callback) => {
@@ -39,7 +40,7 @@
       return {
         ruleForm: {
           id: '',
-          number: sessionStorage.getItem("username"),
+          number: getLoginUsername(),
           name: '',
           sex: '',
           birthday: '',

@@ -14,13 +14,13 @@
         <el-table-column prop="roomName" label="地点"></el-table-column>
         <el-table-column prop="details" label="详情"></el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
-          <template slot-scope="scope">
+          <template #default="scope">
             <el-button type="success" @click="handleUpdate(scope.row)"> 查看详情</el-button>
           </template>
         </el-table-column>
       </el-table>
     </div>
-    <el-dialog :title="dialogTitle" :visible.sync="dialogFormVisible">
+    <el-dialog :title="dialogTitle" v-model="dialogFormVisible">
       <el-form ref="form" :rules="rules" :model="form" label-position="left" label-width="120px"
         style="width: 420px; margin-left:50px;">
         <el-form-item label="标题" prop="title">
@@ -29,7 +29,7 @@
         <el-form-item label="开始时间" prop="beginTime" v-if="isCreate">
           <el-col :span="11">
             <el-form-item prop="date1">
-              <el-date-picker type="date" placeholder="选择日期" v-model="form.date1" value-format="yyyy-MM-dd"
+              <el-date-picker type="date" placeholder="选择日期" v-model="form.date1" value-format="YYYY-MM-DD"
                 style="width: 100%;" :readonly="isUpdate"></el-date-picker>
             </el-form-item>
           </el-col>
@@ -44,7 +44,7 @@
         <el-form-item label="结束时间" prop="endTime" v-if="isCreate">
           <el-col :span="11">
             <el-form-item prop="date3">
-              <el-date-picker type="date" placeholder="选择日期" v-model="form.date3" value-format="yyyy-MM-dd"
+              <el-date-picker type="date" placeholder="选择日期" v-model="form.date3" value-format="YYYY-MM-DD"
                 style="width: 100%;" :readonly="isUpdate"></el-date-picker>
             </el-form-item>
           </el-col>
@@ -83,7 +83,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from '@/axios/axios'
+import { getLoginUsername } from '@/utils/auth'
 export default {
   data() {
     return {
@@ -114,7 +115,7 @@ export default {
       isAdmin: false,
       form1: {
         id: '',
-        number: sessionStorage.getItem("username"),
+        number: getLoginUsername(),
         name: '',
         sex: '',
         birthday: '',

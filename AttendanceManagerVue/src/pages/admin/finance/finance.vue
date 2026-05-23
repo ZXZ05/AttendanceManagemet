@@ -14,7 +14,7 @@
                 <el-table-column prop="typeName" label="类别"></el-table-column>
                 <el-table-column prop="price" label="价格"></el-table-column>
                 <el-table-column label="操作" width="360" fixed="right">
-                  <template slot-scope="scope1">
+                  <template #default="scope1">
                     <el-button type="success" @click="updateFixed(scope1.row)"> 查看详情</el-button>
                     <el-button type="danger" @click="deleteFixed(scope1.row)"> 报废处理</el-button>
                   </template>
@@ -29,7 +29,7 @@
               <div class="block">
                 <span class="demonstration">选择月份</span>
                 <el-date-picker v-model="checkMonth" type="month" placeholder="选择月"
-                  value-format="yyyy-MM"></el-date-picker>
+                  value-format="YYYY-MM"></el-date-picker>
 
               </div><br>
               <div class="block">
@@ -49,7 +49,7 @@
                 <el-table-column prop="leaveEarlyDays" label="早退（次）"></el-table-column>
                 <el-table-column prop="leaveDays" label="缺勤（次）"></el-table-column>
                 <el-table-column label="操作" width="260" fixed="right">
-                  <template slot-scope="scope2">
+                  <template #default="scope2">
                     <el-button type="success" @click="payOff(scope2.row)"> 发放工资条</el-button>
                   </template>
                 </el-table-column>
@@ -59,7 +59,7 @@
         </el-tab-pane>
       </el-tabs>
     </div>
-    <el-dialog :title="dialogTitle" :visible.sync="dialogFormVisible">
+    <el-dialog :title="dialogTitle" v-model="dialogFormVisible">
       <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm"
         style="width:100%;">
         <el-form-item label="申请人" prop="employeeName">
@@ -100,14 +100,15 @@
   </div>
 </template>
 <script>
-import axios from 'axios'
+import axios from '@/axios/axios'
+import { getLoginUsername } from '@/utils/auth'
 export default {
   data() {
     return {
       isFixed: false,
       fixedList: [],
       ruleForm: {
-        employeeNumber: sessionStorage.getItem("username"),
+        employeeNumber: getLoginUsername(),
         employeeName: '',
         number: '',
         name: '',
@@ -128,7 +129,7 @@ export default {
       isApproval: false,
       form: {
         id: '',
-        number: sessionStorage.getItem("username"),
+        number: getLoginUsername(),
         name: '',
         sex: '',
         birthday: '',
@@ -179,7 +180,7 @@ export default {
       this.$refs['ruleForm'].resetFields();
       this.ruleForm.employeeName = this.employeeName;
       this.ruleForm.applyTime = this.getTime();
-      this.employeeNumber = sessionStorage.getItem("username");
+      this.employeeNumber = getLoginUsername();
       this.taskTypeID = '2';
     },
     createFixed() {
@@ -210,7 +211,7 @@ export default {
     },
     // resetTemp() {
     //   this.ruleForm = {
-    //     employeeNumber: sessionStorage.getItem("username"),
+    //     employeeNumber: getLoginUsername(),
     //     employeeName: this.employeeName,
     //     number:'',
     //     name: '',

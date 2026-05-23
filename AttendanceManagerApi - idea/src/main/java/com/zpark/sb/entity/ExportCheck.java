@@ -11,22 +11,20 @@ public class ExportCheck extends BaseRowModel {
     @ExcelProperty(value = "员工姓名", index = 1)
     private String employeeName;
 
-    @ExcelProperty(value = "应出勤（天）", index = 2)
+    @ExcelProperty(value = "应出勤(天)", index = 2)
     private Integer workDays;
 
     @ExcelProperty(value = "实际出勤", index = 3)
     private Integer checkDays;
 
-    @ExcelProperty(value = "迟到（次）", index = 5)
+    @ExcelProperty(value = "请假(天)", index = 4)
+    private Integer leaveDays;
+
+    @ExcelProperty(value = "迟到(次)", index = 5)
     private Integer lateDays;
 
-    @ExcelProperty(value = "早退（次）", index = 6)
+    @ExcelProperty(value = "早退(次)", index = 6)
     private Integer leaveEarlyDays;
-
-//    private Integer days;
-
-    @ExcelProperty(value = "请假（天）", index = 4)
-    private Integer leaveDays;
 
     public String getEmployeeID() {
         return employeeID;

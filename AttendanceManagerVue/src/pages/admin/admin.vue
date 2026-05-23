@@ -8,7 +8,7 @@
       <el-menu-item index="4" @click="goTo('/statistics')"><span class="navigation">统计模块</span></el-menu-item>
       <!-- <el-menu-item index="5" @click="goTo('/customer')"><span class="navigation">客户管理</span></el-menu-item> -->
       <!-- <el-submenu index="5">
-        <template slot="title"><span class="navigation">会议通知模块</span></template>
+        <template #title><span class="navigation">会议通知模块</span></template>
           <el-menu-item index="5-1" @click="goTo('/meeting')"><span class="smallBar">查看会议记录</span></el-menu-item>
           <el-menu-item index="5-2" @click="goTo('/notice')"><span class="smallBar">查看通知</span></el-menu-item>
       </el-submenu> -->

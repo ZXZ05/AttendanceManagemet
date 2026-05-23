@@ -22,30 +22,42 @@ public class EmployeeService {
 
     public int deleteById(String id) {
         Employee employee = employeeDao.selectById(id);
+        if (employee == null) {
+            return 404;
+        }
         employeeDao.deleteById(id);
         syncDepartment(employee);
         return 200;
     }
 
     private void syncDepartment(Employee employee) {
+        if (employee == null) {
+            return;
+        }
         if (employee.getDepartmentID() != null) {
             List<Employee> employees = employeeDao.selectByDepartmentId(employee.getDepartmentID());
             Department department = departmentService.selectById(employee.getDepartmentID());
-            department.setQuantity(employees.size());
-            departmentService.update(department);
+            if (department != null) {
+                department.setQuantity(employees.size());
+                departmentService.update(department);
+            }
         }
         Position position = null;
         if (employee.getPosition() != null) {
             List<Employee> employees = employeeDao.selectByPositionId(employee.getPosition());
             position = positionService.selectById(employee.getPosition());
-            position.setQuantity(employees.size());
-            positionService.update(position);
+            if (position != null) {
+                position.setQuantity(employees.size());
+                positionService.update(position);
+            }
         }
-        if (position != null) {
+        if (position != null && position.getTypeID() != null) {
             List<Employee> employees = employeeDao.selectByEmployeeType(position.getTypeID());
             EmployeeType employeeType = employeeTypeService.selectById(position.getTypeID());
-            employeeType.setQuantity(employees.size());
-            employeeTypeService.update(employeeType);
+            if (employeeType != null) {
+                employeeType.setQuantity(employees.size());
+                employeeTypeService.update(employeeType);
+            }
         }
     }
 
@@ -66,6 +78,37 @@ public class EmployeeService {
             syncDepartment(employee);
             return 0;
         }
+    }
+
+    public int register(Employee employee) {
+        Employee existed = findByNumber(employee.getNumber());
+        if (existed != null) {
+            return 1;
+        }
+
+        Employee registerEmployee = new Employee();
+        registerEmployee.setId(UUID.randomUUID().toString());
+        registerEmployee.setNumber(employee.getNumber());
+        registerEmployee.setName(
+                employee.getName() == null || employee.getName().trim().isEmpty()
+                        ? employee.getNumber()
+                        : employee.getName()
+        );
+        registerEmployee.setPhone(employee.getPhone());
+        registerEmployee.setPassword(employee.getPassword());
+        registerEmployee.setWorkStatus("0");
+        // default normal employee type
+        registerEmployee.setEmployeeType("4");
+        registerEmployee.setSex(
+                employee.getSex() == null || employee.getSex().trim().isEmpty()
+                        ? "未知"
+                        : employee.getSex()
+        );
+        registerEmployee.setAddress(employee.getAddress());
+        registerEmployee.setBirthday(employee.getBirthday());
+        employeeDao.insert(registerEmployee);
+        syncDepartment(registerEmployee);
+        return 0;
     }
 
     public Employee selectById(String id) {
@@ -91,10 +134,6 @@ public class EmployeeService {
         return employeeDao.findByNumber(number);
     }
 
-    public Employee findByPassword(String password) {
-        return employeeDao.findByPassword(password);
-    }
-
     public List<Employee> findByNameAndDepartment(Employee employee) {
         return employeeDao.findByNameAndDepartment(employee);
     }
@@ -108,6 +147,9 @@ public class EmployeeService {
     }
 
     public Employee getLeader(Employee employee) {
+        if (employee == null || employee.getType() == null) {
+            return null;
+        }
         if (employee.getType().equals("1")) {
             Employee employee1 = getMinister(employee);
             if (employee1 != null) {

@@ -34,7 +34,7 @@
         <el-menu-item index="3" @click="goTo('/admin')" v-if="isAdmin">
           <i class="iconfont icon-r-setting" style="font-size: 28px;"></i><span
             class="navigation"> 管理员模块</span></el-menu-item>
-        <el-menu-item index="4" @click="goTo('/')" style="float: right;"><i class="iconfont icon-r-no"  style="font-size: 22px;"></i><span
+        <el-menu-item index="4" @click="logout" style="float: right;"><i class="iconfont icon-r-no"  style="font-size: 22px;"></i><span
             class="navigation"> 退出</span></el-menu-item>
         
       </el-menu>
@@ -47,7 +47,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from '@/axios/axios'
+import { clearLoginSession, getLoginUsername } from '@/utils/auth'
 export default {
   data() {
     return {
@@ -56,7 +57,7 @@ export default {
       type: '',
       form: {
         id: '',
-        number: sessionStorage.getItem("username"),
+        number: getLoginUsername(),
         name: '',
         sex: '',
         birthday: '',
@@ -88,6 +89,10 @@ export default {
     },
     goTo(path) {
       this.$router.push(path);
+    },
+    logout() {
+      clearLoginSession()
+      this.$router.replace('/')
     },
     getUsername() {
       axios.post('/employee/findByNumber', this.form).then(res => {

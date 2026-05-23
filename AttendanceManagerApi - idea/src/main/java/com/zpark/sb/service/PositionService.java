@@ -1,5 +1,7 @@
 package com.zpark.sb.service;
 
+import com.zpark.sb.dao.DepartmentDao;
+import com.zpark.sb.dao.EmployeeDao;
 import com.zpark.sb.dao.PositionDao;
 import com.zpark.sb.entity.Department;
 import com.zpark.sb.entity.Position;
@@ -15,19 +17,21 @@ public class PositionService {
     @Autowired
     private PositionDao positionDao;
     @Autowired
-    private DepartmentService departmentService;
+    private DepartmentDao departmentDao;
     @Autowired
-    private EmployeeService employeeService;
+    private EmployeeDao employeeDao;
 
     public int deleteById(String id) {
-        if(employeeService.findByPositionID(id).size() != 0){
+        if(employeeDao.findByPositionID(id).size() != 0){
             return 1;
         }else {
             Position position = selectById(id);
-            if(position.getDepartmentID() != null){
-                Department department = departmentService.selectById(position.getDepartmentID());
-                department.setPosNum(department.getPosNum()-1);
-                departmentService.update(department);
+            if(position != null && position.getDepartmentID() != null){
+                Department department = departmentDao.selectById(position.getDepartmentID());
+                if (department != null && department.getPosNum() != null && department.getPosNum() > 0) {
+                    department.setPosNum(department.getPosNum()-1);
+                    departmentDao.update(department);
+                }
             }
             positionDao.deleteById(id);
             return 0;
@@ -43,11 +47,11 @@ public class PositionService {
             position.setQuantity(0);
             positionDao.insert(position);
             if(position.getDepartmentID() != null){
-                Department department = departmentService.selectById(position.getDepartmentID());
+                Department department = departmentDao.selectById(position.getDepartmentID());
                 if(department != null) {
 
                     department.setPosNum(department.getPosNum()+1);
-                    departmentService.update(department);
+                    departmentDao.update(department);
                 }
             }
             return 0;

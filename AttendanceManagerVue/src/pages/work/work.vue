@@ -21,14 +21,15 @@
 </template>
 
 <script>
-  import axios from 'axios'
+  import axios from '@/axios/axios'
+  import { getLoginUsername } from '@/utils/auth'
   export default {
     // created() {
     //   this.goTo("/todo");
     // },
     data(){
       return{
-        number: sessionStorage.getItem("username"),
+        number: getLoginUsername(),
         isManage: false,
         type: '',
       }

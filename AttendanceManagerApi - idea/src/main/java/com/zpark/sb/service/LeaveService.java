@@ -27,25 +27,32 @@ public class LeaveService {
     }
 
     public int insert(Leave leave) {
-        String id1 = UUID.randomUUID().toString();
-        leave.setId(id1);
-        String id2 = UUID.randomUUID().toString();
-        leave.setApprovalID(id2);
+        String applyId = UUID.randomUUID().toString();
+        leave.setId(applyId);
+        String taskId = UUID.randomUUID().toString();
+        leave.setApprovalID(taskId);
         leave.setStatus("0");
         leaveDao.insert(leave);
+
         Task task = new Task();
-        task.setId(id2);
-        task.setApplyID(id1);
+        task.setId(taskId);
+        task.setApplyID(applyId);
         task.setApplyTime(leave.getApplyTime());
         task.setTypeID(leave.getTaskTypeID());
         task.setApplyNumber(leave.getApplyNumber());
-        String username = leave.getApplyName();
         String typeName = taskTypeService.selectById(leave.getTaskTypeID()).getName();
-        task.setName(username+"的"+typeName);
+        task.setName(leave.getApplyName() + "的" + typeName);
         task.setStatus("0");
-        Employee employee = employeeService.findByNumber(leave.getApplyNumber());
-        Employee employee1 = employeeService.getLeader(employee);
-        task.setReceiveNumber(employee1.getNumber());
+
+        Employee applicant = employeeService.findByNumber(leave.getApplyNumber());
+        if (applicant == null) {
+            return 2;
+        }
+        Employee leader = employeeService.getLeader(applicant);
+        if (leader == null) {
+            return 2;
+        }
+        task.setReceiveNumber(leader.getNumber());
         taskService.insert(task);
         return 0;
     }
@@ -58,13 +65,18 @@ public class LeaveService {
         return leaveDao.update(leave);
     }
 
-    public List<Leave> findByEmployeeNumber(String number){
+    public List<Leave> findByEmployeeNumber(String number) {
         List<Leave> leaveList = leaveDao.findByEmployeeNumber(number);
-        for(Leave item : leaveList){
-            if(item.getStatus().equals("1") || item.getStatus().equals("2")){
+        for (Leave item : leaveList) {
+            if ("1".equals(item.getStatus()) || "2".equals(item.getStatus())) {
                 Task task = taskService.selectById(item.getApprovalID());
+                if (task == null) {
+                    continue;
+                }
                 Employee employee = employeeService.findByNumber(task.getApprovalNumber());
-                item.setApprovalName(employee.getName());
+                if (employee != null) {
+                    item.setApprovalName(employee.getName());
+                }
                 item.setApprovalTime(task.getApprovalTime());
             }
         }

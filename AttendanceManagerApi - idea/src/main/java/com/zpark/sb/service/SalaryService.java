@@ -21,52 +21,68 @@ public class SalaryService {
     private PositionService positionService;
 
     public int deleteById(String id) {
-        return 0;
+        return salaryDao.deleteById(id);
     }
 
     public int insert(Salary salary) {
-        salaryDao.insert(salary);
-        return 0;
+        return salaryDao.insert(salary);
     }
 
     public Salary selectById(String id) {
-        return null;
+        return salaryDao.selectById(id);
     }
 
     public int update(Salary record) {
+        return salaryDao.update(record);
+    }
+
+    public int payOff(Check check) {
+        if (check == null || check.getEmployeeID() == null || check.getMonth() == null || check.getMonth().length() < 7) {
+            return 2;
+        }
+        if (findByNumberAndMonth(check) != null) {
+            return 1;
+        }
+
+        Employee employee = employeeService.findByNumber(check.getEmployeeID());
+        if (employee == null || employee.getPosition() == null) {
+            return 2;
+        }
+        Position position = positionService.selectById(employee.getPosition());
+        if (position == null || position.getMonthlySalary() == null) {
+            return 2;
+        }
+
+        int workDays = check.getWorkDays() == null ? 0 : check.getWorkDays();
+        int checkDays = check.getCheckDays() == null ? 0 : check.getCheckDays();
+        int lateTimes = check.getLateDays() == null ? 0 : check.getLateDays();
+        int leaveEarlyTimes = check.getLeaveEarlyDays() == null ? 0 : check.getLeaveEarlyDays();
+        if (workDays <= 0) {
+            return 2;
+        }
+
+        Salary salary = new Salary();
+        salary.setId(UUID.randomUUID().toString());
+        salary.setMonthlySalary(position.getMonthlySalary());
+        salary.setWorkDays(workDays);
+        salary.setCheckDays(checkDays);
+        salary.setLeaveDays(check.getLeaveDays() == null ? 0 : check.getLeaveDays());
+        salary.setLateTimes(lateTimes);
+        salary.setLeaveEarlyTimes(leaveEarlyTimes);
+
+        double value = position.getMonthlySalary() * (checkDays / (double) workDays) - lateTimes * 50D - leaveEarlyTimes * 50D;
+        salary.setSalary(value);
+        salary.setEmployeeID(check.getEmployeeID());
+        salary.setMonth(check.getMonth().substring(0, 7));
+        insert(salary);
         return 0;
     }
 
-    public int payOff(Check check){
-        if(findByNumberAndMonth(check) != null){
-            return 1;
-        }else {
-            Salary salary = new Salary();
-            salary.setId(UUID.randomUUID().toString());
-            Employee employee = employeeService.findByNumber(check.getEmployeeID());
-            Position position = positionService.selectById(employee.getPosition());
-            salary.setMonthlySalary(position.getMonthlySalary());
-            salary.setWorkDays(check.getWorkDays());
-            salary.setCheckDays(check.getCheckDays());
-            salary.setLeaveDays(check.getLeaveDays());
-            salary.setLateTimes(check.getLateDays());
-            salary.setLeaveEarlyTimes(check.getLeaveEarlyDays());
-            int monthlySalary = salary.getMonthlySalary();
-            int workDays = salary.getWorkDays();
-            int checkDays = salary.getCheckDays();
-            int lateTimes = salary.getLateTimes();
-            int leaveEarlyTimes = salary.getLeaveEarlyTimes();
-            double salarys = monthlySalary/workDays*checkDays-lateTimes*50-leaveEarlyTimes*50;
-            salary.setSalary(salarys);
-            salary.setEmployeeID(check.getEmployeeID());
-            salary.setMonth(check.getMonth().substring(0,7));
-            insert(salary);
-            return 0;
+    public Salary findByNumberAndMonth(Check check) {
+        if (check == null || check.getMonth() == null || check.getMonth().length() < 7) {
+            return null;
         }
-    }
-
-    public Salary findByNumberAndMonth(Check check){
-        check.setMonth(check.getMonth().substring(0,7));
+        check.setMonth(check.getMonth().substring(0, 7));
         return salaryDao.findByNumberAndMonth(check);
     }
 }

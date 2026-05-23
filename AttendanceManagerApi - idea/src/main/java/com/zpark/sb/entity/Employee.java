@@ -71,10 +71,6 @@ public class Employee {
         this.sex = sex == null ? null : sex.trim();
     }
 
-    public String getDepartmentid() {
-        return departmentID;
-    }
-
     public void setDepartmentID(String departmentID) {
         this.departmentID = departmentID == null ? null : departmentID.trim();
     }

@@ -156,14 +156,15 @@ function updateElement(element, textSize) {
   }
 }
 
-import Vue from 'vue'
-Vue.mixin({
-  mounted() {
-    this.$nextTick(() => {
-      toLoad()
-    });
-  }
-})
+export function installInitializeMixin(app) {
+  app.mixin({
+    mounted() {
+      this.$nextTick(() => {
+        toLoad()
+      })
+    }
+  })
+}
 
 function from(text) {
   const coder = new TextDecoder();

@@ -14,7 +14,7 @@ import java.util.UUID;
 public class FixedassetService {
 
     @Autowired
-    FixedassetsDao fixedassetsDao;
+    private FixedassetsDao fixedassetsDao;
     @Autowired
     private TaskService taskService;
     @Autowired
@@ -27,39 +27,46 @@ public class FixedassetService {
     }
 
     public int insert(Fixedassets fixedassets) {
-        Fixedassets fixedassets1 = findByNumber(fixedassets.getNumber());
-        if(fixedassets1 != null){
+        Fixedassets existed = findByNumber(fixedassets.getNumber());
+        if (existed != null) {
             return 1;
-        }else {
-            String id1 = UUID.randomUUID().toString();
-            fixedassets.setId(id1);
-            Employee employee2 = employeeService.findByNumber(fixedassets.getEmployeeNumber());
-            if(employee2.getType().equals("3")){
-                fixedassets.setStatus("1");
-                fixedassets.setApprovalID(employee2.getId());
-                fixedassetsDao.insert(fixedassets);
-            }else {
-                String id2 = UUID.randomUUID().toString();
-                fixedassets.setApprovalID(id2);
-                fixedassets.setStatus("0");
-                fixedassetsDao.insert(fixedassets);
-                Task task = new Task();
-                task.setId(id2);
-                task.setApplyID(id1);
-                task.setApplyTime(fixedassets.getApplyTime());
-                task.setTypeID(fixedassets.getTaskTypeID());
-                task.setApplyNumber(fixedassets.getEmployeeNumber());
-                String username = fixedassets.getEmployeeName();
-                String typeName = taskTypeService.selectById(fixedassets.getTaskTypeID()).getName();
-                task.setName(username+"的"+typeName);
-                task.setStatus("0");
-                Employee employee = employeeService.findByNumber(fixedassets.getEmployeeNumber());
-                Employee employee1 = employeeService.getLeader(employee);
-                task.setReceiveNumber(employee1.getNumber());
-                taskService.insert(task);
-            }
+        }
+
+        String applyId = UUID.randomUUID().toString();
+        fixedassets.setId(applyId);
+        Employee applicant = employeeService.findByNumber(fixedassets.getEmployeeNumber());
+        if (applicant == null) {
+            return 2;
+        }
+
+        if ("3".equals(applicant.getType())) {
+            fixedassets.setStatus("1");
+            fixedassets.setApprovalID(applicant.getId());
+            fixedassetsDao.insert(fixedassets);
             return 0;
         }
+
+        String taskId = UUID.randomUUID().toString();
+        fixedassets.setApprovalID(taskId);
+        fixedassets.setStatus("0");
+        fixedassetsDao.insert(fixedassets);
+
+        Task task = new Task();
+        task.setId(taskId);
+        task.setApplyID(applyId);
+        task.setApplyTime(fixedassets.getApplyTime());
+        task.setTypeID(fixedassets.getTaskTypeID());
+        task.setApplyNumber(fixedassets.getEmployeeNumber());
+        String typeName = taskTypeService.selectById(fixedassets.getTaskTypeID()).getName();
+        task.setName(fixedassets.getEmployeeName() + "的" + typeName);
+        task.setStatus("0");
+        Employee leader = employeeService.getLeader(applicant);
+        if (leader == null) {
+            return 2;
+        }
+        task.setReceiveNumber(leader.getNumber());
+        taskService.insert(task);
+        return 0;
     }
 
     public Fixedassets selectById(String id) {
@@ -70,25 +77,24 @@ public class FixedassetService {
         return fixedassetsDao.update(fixedassets);
     }
 
-    public List<Fixedassets> getAll(){
+    public List<Fixedassets> getAll() {
         return fixedassetsDao.getAll();
     }
 
-    public Fixedassets findByNumber(String number){
+    public Fixedassets findByNumber(String number) {
         return fixedassetsDao.findByNumber(number);
     }
 
-    public List<Fixedassets> findByEmployeeNumber(String number){
+    public List<Fixedassets> findByEmployeeNumber(String number) {
         List<Fixedassets> fixedassetsList = fixedassetsDao.findByEmployeeNumber(number);
-        for(Fixedassets item : fixedassetsList){
-            if(item.getStatus().equals("1") || item.getStatus().equals("2")){
+        for (Fixedassets item : fixedassetsList) {
+            if ("1".equals(item.getStatus()) || "2".equals(item.getStatus())) {
                 Task task = taskService.selectById(item.getApprovalID());
-                if(task == null) {
+                if (task == null) {
                     continue;
                 }
-                // 获取批准人信息
                 Employee employee = employeeService.findByNumber(task.getApprovalNumber());
-                if(employee != null) {
+                if (employee != null) {
                     item.setApprovalName(employee.getName());
                 }
                 item.setApprovalTime(task.getApprovalTime());
@@ -97,7 +103,7 @@ public class FixedassetService {
         return fixedassetsList;
     }
 
-    public List<Fixedassets> getRoomList(){
+    public List<Fixedassets> getRoomList() {
         return fixedassetsDao.getRoomList();
     }
 }

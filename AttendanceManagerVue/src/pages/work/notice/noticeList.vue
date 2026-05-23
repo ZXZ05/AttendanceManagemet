@@ -14,24 +14,24 @@
         <el-table-column prop="beginDate" label="开始日期"></el-table-column>
         <el-table-column prop="endDate" label="结束日期"></el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
-          <template slot-scope="scope">
+          <template #default="scope">
             <el-button type="success" @click="handleUpdate(scope.row)"> 查看详情</el-button>
           </template>
         </el-table-column>
       </el-table>
     </div>
-    <el-dialog :title="dialogTitle" :visible.sync="dialogFormVisible">
+    <el-dialog :title="dialogTitle" v-model="dialogFormVisible">
       <el-form ref="form" :rules="rules" :model="form" label-position="left" label-width="120px"
         style="width: 420px; margin-left:50px;">
         <el-form-item label="标题" prop="title">
           <el-input v-model="form.title" placeholder="请输入通知标题~" :readonly="isUpdate" />
         </el-form-item>
         <el-form-item label="开始时间" prop="beginDate">
-          <el-date-picker v-model="form.beginDate" type="date" placeholder="选择开始日期" value-format="yyyy-MM-dd"
+          <el-date-picker v-model="form.beginDate" type="date" placeholder="选择开始日期" value-format="YYYY-MM-DD"
             style="width: 100%;" :readonly="isUpdate"></el-date-picker>
         </el-form-item>
         <el-form-item label="结束时间" prop="endDate">
-          <el-date-picker v-model="form.endDate" type="date" placeholder="选择结束日期" value-format="yyyy-MM-dd"
+          <el-date-picker v-model="form.endDate" type="date" placeholder="选择结束日期" value-format="YYYY-MM-DD"
             style="width: 100%;" :readonly="isUpdate"></el-date-picker>
         </el-form-item>
         <el-form-item label="发布人">
@@ -53,7 +53,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from '@/axios/axios'
+import { getLoginUsername } from '@/utils/auth'
 export default {
   data() {
     return {
@@ -85,7 +86,7 @@ export default {
       },
       form1: {
         id: '',
-        number: sessionStorage.getItem("username"),
+        number: getLoginUsername(),
         name: '',
         sex: '',
         birthday: '',

@@ -8,10 +8,10 @@ spring:
     time-zone: GMT+8
 
 mybatis:
-  mapperLocations: classpath:com/rabbiter/am/mapper/*.xml
+  mapper-locations: classpath:com/zpark/sb/mapper/*.xml
 logging:
   level:
-    com.rabbiter.am.dao: debug
+    com.zpark.sb.dao: debug
 server:
   port: 9331
 attendance:

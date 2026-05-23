@@ -19,13 +19,7 @@ public interface EmployeeDao {
 
     List<Employee> getAll();
 
-//    List<Employee> findByName(@Param("name")String name);
-//
-//    List<Employee> findByDepartmentID(@Param("departmentID")String departmentID);
-
     Employee findByNumber(@Param("number")String number);
-
-    Employee findByPassword(@Param("password")String password);
 
     List<Employee> findByNameAndDepartment(Employee employee);
 

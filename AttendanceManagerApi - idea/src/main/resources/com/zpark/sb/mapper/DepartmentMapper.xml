@@ -81,7 +81,7 @@
   </select>
   <select id="findByName" resultMap="BaseResultMap">
     select * from department
-    where name like '%${name}%'
+    where name like concat('%', #{name}, '%')
   </select>
 
   <select id="findByNumber" resultMap="BaseResultMap">
@@ -89,3 +89,5 @@
     where number = #{number}
   </select>
 </mapper>
+
+

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="pro-container">
     <div>
       <el-table :data="tableData" border fit highlight-current-row style="width: 100%">
@@ -75,7 +75,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from '@/axios/axios'
+import { getLoginUsername, isAuthenticated } from '@/utils/auth'
 export default {
   data() {
     return {
@@ -95,15 +96,14 @@ export default {
   },
   methods: {
     getData() {
+      if (!isAuthenticated()) {
+        this.$router.push("/");
+        this.$message({ message: "未登录或登录信息过期", type: "error" });
+        return
+      }
       axios.post("/task/list", {
-        receiveNumber: sessionStorage.getItem("username")
+        receiveNumber: getLoginUsername()
       }).then(res => {
-        if(!document.cookie.split(';').some(c => c.trim().startsWith('LOGIN='))) {
-          
-          this.$router.push("/");
-          this.$message({ message: "未登录或登录信息过期", type: "error" });
-          return
-        } 
         this.tableData = res.data;
       })
     },
@@ -138,7 +138,7 @@ export default {
     approval(advice) {
       this.form1.advice = advice;
       this.form1.approvalTime = this.getTime();
-      this.form1.approvalNumber = sessionStorage.getItem("username");
+      this.form1.approvalNumber = getLoginUsername();
       //this.form1 = Object.assign({advice: advice}, this.form1)
       axios.post("/task/approval", this.form1).then(res => {
         if (res.data.code == 200) {
