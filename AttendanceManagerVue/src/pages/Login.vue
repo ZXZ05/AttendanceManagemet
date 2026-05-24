@@ -1,11 +1,11 @@
 ﻿<template>
   <main class="auth-page login-page">
     <section class="auth-hero am-panel">
-      <img src="@/assets/01.png" alt="Attendance Manager" class="hero-logo" />
-      <p class="eyebrow">Attendance Manager</p>
-      <h1>让考勤、审批与协作更高效</h1>
+      <img src="@/assets/01.png" alt="朝夕考勤系统" class="hero-logo" />
+      <p class="eyebrow">ZhaoXi Attendance</p>
+      <h1>朝夕考勤系统</h1>
       <p class="hero-copy">
-        一体化员工协同平台，覆盖考勤打卡、请假审批、会议通知和管理分析。
+        让每日出勤、请假审批、会议通知和管理分析都更清晰可靠。
       </p>
       <div class="hero-metrics">
         <MetricCard label="实时" value="考勤状态" hint="签到签退一屏掌握" />

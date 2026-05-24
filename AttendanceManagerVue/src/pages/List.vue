@@ -2,10 +2,10 @@
   <div class="shell am-shell">
     <header class="shell-header am-panel">
       <div class="brand">
-        <img src="@/assets/01.png" alt="Attendance Manager" />
+        <img src="@/assets/01.png" alt="朝夕考勤系统" />
         <div>
-          <p>Attendance Manager</p>
-          <strong>考勤管理系统</strong>
+          <p>ZhaoXi Attendance</p>
+          <strong>朝夕考勤系统</strong>
         </div>
       </div>
 

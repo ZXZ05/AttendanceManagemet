@@ -2,10 +2,10 @@
   <main class="auth-page register-page">
     <section class="auth-form am-panel">
       <div class="brand-line">
-        <img src="@/assets/01.png" alt="Attendance Manager" />
+        <img src="@/assets/01.png" alt="朝夕考勤系统" />
         <div>
-          <p class="eyebrow">Create Account</p>
-          <h1>员工账号注册</h1>
+          <p class="eyebrow">ZhaoXi Attendance</p>
+          <h1>朝夕考勤系统注册</h1>
         </div>
       </div>
       <p class="desc">填写基础信息后即可提交注册申请。</p>
