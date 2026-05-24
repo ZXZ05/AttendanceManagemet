@@ -24,7 +24,7 @@ public class DepartmentController {
     @ResponseBody
     @RequestMapping(value = "/list",method = RequestMethod.GET)
     public List<Department> get(HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canAccessAdminPortal(request)) {
             return Collections.emptyList();
         }
         return departmentService.getAll();
@@ -33,7 +33,7 @@ public class DepartmentController {
     @ResponseBody
     @RequestMapping(value = "/insert",method = RequestMethod.POST)
     public Result insert(@RequestBody Department department, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageOrg(request)) {
             return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
         }
         int size = departmentService.insert(department);
@@ -47,7 +47,7 @@ public class DepartmentController {
     @ResponseBody
     @RequestMapping(value = "/update",method = RequestMethod.POST)
     public int update(@RequestBody Department department, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageOrg(request)) {
             return 403;
         }
 //        int size = departmentService.update(department);
@@ -62,7 +62,7 @@ public class DepartmentController {
     @ResponseBody
     @RequestMapping(value = "/findByName",method = RequestMethod.GET)
     public List<Department> findByName(@RequestParam String name, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageOrg(request)) {
             return Collections.emptyList();
         }
         return departmentService.findByName(name);
@@ -71,7 +71,7 @@ public class DepartmentController {
     @ResponseBody
     @RequestMapping(value = "/deleteById",method = RequestMethod.POST)
     public Result deleteById(@RequestBody Department department, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageOrg(request)) {
             return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
         }
         int size = departmentService.deleteById(department.getId());

@@ -27,7 +27,7 @@ public class EmployeeController {
     @ResponseBody
     @RequestMapping(value = "/list",method = RequestMethod.GET)
     public List<Employee> get(HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canAccessAdminPortal(request)) {
             return Collections.emptyList();
         }
         return employeeService.getAll();
@@ -36,7 +36,7 @@ public class EmployeeController {
     @ResponseBody
     @RequestMapping(value = "/insert",method = RequestMethod.POST)
     public Result insert(@RequestBody Employee employee, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageEmployee(request)) {
             return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
         }
         int size = employeeService.insert(employee);
@@ -50,7 +50,7 @@ public class EmployeeController {
     @ResponseBody
     @RequestMapping(value = "/update",method = RequestMethod.POST)
     public int update(@RequestBody Employee employee, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageEmployee(request)) {
             return 403;
         }
         return employeeService.update(employee);
@@ -59,7 +59,7 @@ public class EmployeeController {
     @ResponseBody
     @RequestMapping(value = "/deleteById",method = RequestMethod.POST)
     public int deleteById(@RequestBody Employee employee, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageEmployee(request)) {
             return 403;
         }
         return employeeService.deleteById(employee.getId());
@@ -68,7 +68,7 @@ public class EmployeeController {
     @ResponseBody
     @RequestMapping(value = "/findByNameAndDepartment",method = RequestMethod.POST)
     public List<Employee> findByNameAndDepartment(@RequestBody Employee employee, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageEmployee(request)) {
             return Collections.emptyList();
         }
         return employeeService.findByNameAndDepartment(employee);
@@ -120,28 +120,28 @@ public class EmployeeController {
 
     @ResponseBody
     @RequestMapping(value = "/getEducation",method = RequestMethod.GET)
-    public List<Chart> getEducation(HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
-            return Collections.emptyList();
+    public Result getEducation(HttpServletRequest request){
+        if (!authContextService.canViewStatistics(request)) {
+            return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
         }
-        return employeeService.getEducation();
+        return Result.success(employeeService.getEducation());
     }
 
     @ResponseBody
     @RequestMapping(value = "/getAge",method = RequestMethod.GET)
-    public List<Chart> getAge(HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
-            return Collections.emptyList();
+    public Result getAge(HttpServletRequest request){
+        if (!authContextService.canViewStatistics(request)) {
+            return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
         }
-        return employeeService.getAge();
+        return Result.success(employeeService.getAge());
     }
 
     @ResponseBody
     @RequestMapping(value = "/getNew",method = RequestMethod.GET)
-    public List<Chart> getNew(HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
-            return Collections.emptyList();
+    public Result getNew(HttpServletRequest request){
+        if (!authContextService.canViewStatistics(request)) {
+            return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
         }
-        return employeeService.getNew();
+        return Result.success(employeeService.getNew());
     }
 }

@@ -1,15 +1,15 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import './styles/app.css'
 import { installInitializeMixin } from '@/../initialize'
+import { installElementPlus } from '@/plugins/element-plus'
 
 const app = createApp(App)
 installInitializeMixin(app)
 
-app.use(ElementPlus)
+installElementPlus(app)
 app.use(router)
 
 app.mount('#app')

@@ -60,6 +60,21 @@ public class Apply {
 
     private String employeeNumber;
 
+    /**
+     * 考勤补卡申请
+     */
+    private String repairDate;
+
+    private String repairType;
+
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date checkOnTime;
+
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date checkOffTime;
+
     public String getId() {
         return id;
     }
@@ -178,6 +193,38 @@ public class Apply {
 
     public void setEmployeeNumber(String employeeNumber) {
         this.employeeNumber = employeeNumber;
+    }
+
+    public String getRepairDate() {
+        return repairDate;
+    }
+
+    public void setRepairDate(String repairDate) {
+        this.repairDate = repairDate;
+    }
+
+    public String getRepairType() {
+        return repairType;
+    }
+
+    public void setRepairType(String repairType) {
+        this.repairType = repairType;
+    }
+
+    public Date getCheckOnTime() {
+        return checkOnTime;
+    }
+
+    public void setCheckOnTime(Date checkOnTime) {
+        this.checkOnTime = checkOnTime;
+    }
+
+    public Date getCheckOffTime() {
+        return checkOffTime;
+    }
+
+    public void setCheckOffTime(Date checkOffTime) {
+        this.checkOffTime = checkOffTime;
     }
 
     public String getType() {

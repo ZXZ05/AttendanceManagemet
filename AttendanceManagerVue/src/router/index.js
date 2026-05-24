@@ -2,7 +2,7 @@
 import List from '@/pages/List.vue'
 import Login from '@/pages/Login.vue'
 import Register from '@/pages/Register.vue'
-import { isAdmin, isAuthenticated } from '@/utils/auth'
+import { canAccessAdminPortal, hasAllPermissions, isAuthenticated, PERMISSION } from '@/utils/auth'
 
 const routes = [
   {
@@ -108,40 +108,62 @@ const routes = [
         name: 'admin',
         meta: {
           title: '管理端',
-          requiresAdmin: true
+          permission: [PERMISSION.ADMIN_ENTRY]
         },
         component: () => import('@/pages/admin/admin.vue'),
         children: [
           {
             path: '',
-            redirect: '/employee'
+            redirect: '/admin/dashboard'
+          },
+          {
+            path: 'dashboard',
+            alias: '/admin/dashboard',
+            name: 'adminDashboard',
+            meta: {
+              title: '管理仪表盘',
+              permission: [PERMISSION.ADMIN_DASHBOARD]
+            },
+            component: () => import('@/pages/admin/dashboard/dashboard.vue')
           },
           {
             path: 'employee',
             alias: '/employee',
             name: 'employee',
-            meta: { title: '员工管理' },
+            meta: {
+              title: '员工管理',
+              permission: [PERMISSION.EMPLOYEE_MANAGE]
+            },
             component: () => import('@/pages/admin/employee/employeeList.vue')
           },
           {
             path: 'department',
             alias: '/department',
             name: 'department',
-            meta: { title: '部门职位' },
+            meta: {
+              title: '部门职位',
+              permission: [PERMISSION.ORG_MANAGE]
+            },
             component: () => import('@/pages/admin/department/departmentList.vue')
           },
           {
             path: 'finance',
             alias: '/finance',
             name: 'finance',
-            meta: { title: '财务管理' },
+            meta: {
+              title: '财务管理',
+              permission: [PERMISSION.FINANCE_MANAGE]
+            },
             component: () => import('@/pages/admin/finance/finance.vue')
           },
           {
             path: 'statistics',
             alias: '/statistics',
             name: 'statistics',
-            meta: { title: '统计分析' },
+            meta: {
+              title: '统计分析',
+              permission: [PERMISSION.STAT_VIEW]
+            },
             component: () => import('@/pages/admin/statistics/statistics.vue')
           }
         ]
@@ -160,7 +182,9 @@ const PUBLIC_PATHS = ['/', '/register']
 router.beforeEach((to, from, next) => {
   const authed = isAuthenticated()
   const isPublic = PUBLIC_PATHS.includes(to.path)
-  const requiresAdmin = to.matched.some((item) => item.meta?.requiresAdmin)
+  const requiredPermissions = to.matched
+    .flatMap((item) => item.meta?.permission || [])
+    .filter(Boolean)
 
   if (!isPublic && !authed) {
     next('/')
@@ -172,7 +196,12 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  if (requiresAdmin && !isAdmin()) {
+  if (to.path.startsWith('/admin') && !canAccessAdminPortal()) {
+    next('/home')
+    return
+  }
+
+  if (requiredPermissions.length > 0 && !hasAllPermissions(requiredPermissions)) {
     next('/home')
     return
   }

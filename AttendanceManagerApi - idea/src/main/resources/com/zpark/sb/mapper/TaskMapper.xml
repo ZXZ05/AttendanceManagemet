@@ -185,6 +185,20 @@
       </if>
       where a.id = #{applyID}
     </if>
+    <if test="type == '考勤补卡申请'">
+      ,a.repairDate,a.repairType,a.checkOnTime,a.checkOffTime,a.reason,a.applyNumber,a.status,a.approvalID,a.applyTime
+      <if test="status == 1 or status == 2">
+        ,b.approvalTime
+        ,(select employeeName from employee f where b.approvalNumber = f.employeeNumber) as approvalName
+      </if>
+      ,(select employeeName from employee d where a.applyNumber = d.employeeNumber) as applyName
+      ,#{type} as type
+      from checkrepair a
+      <if test="status == 1 or status == 2">
+        join task b on a.approvalID = b.id join employee c on b.applyNumber = c.employeeNumber
+      </if>
+      where a.id = #{applyID}
+    </if>
   </select>
 
   <select id="getAll" resultType="com.zpark.sb.entity.Task">

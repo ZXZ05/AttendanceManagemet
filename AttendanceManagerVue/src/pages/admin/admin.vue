@@ -18,17 +18,20 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { DataAnalysis, Money, OfficeBuilding, User } from '@element-plus/icons-vue'
+import { DataAnalysis, Money, Odometer, OfficeBuilding, User } from '@element-plus/icons-vue'
+import { hasPermission, PERMISSION } from '@/utils/auth'
 
 const route = useRoute()
 
-const menuItems = [
-  { path: '/employee', label: '员工管理', icon: User },
-  { path: '/department', label: '部门职位', icon: OfficeBuilding },
-  { path: '/finance', label: '财务管理', icon: Money },
-  { path: '/statistics', label: '统计分析', icon: DataAnalysis }
+const allMenuItems = [
+  { path: '/admin/dashboard', label: '管理仪表盘', icon: Odometer, permission: PERMISSION.ADMIN_DASHBOARD },
+  { path: '/employee', label: '员工管理', icon: User, permission: PERMISSION.EMPLOYEE_MANAGE },
+  { path: '/department', label: '部门职位', icon: OfficeBuilding, permission: PERMISSION.ORG_MANAGE },
+  { path: '/finance', label: '财务管理', icon: Money, permission: PERMISSION.FINANCE_MANAGE },
+  { path: '/statistics', label: '统计分析', icon: DataAnalysis, permission: PERMISSION.STAT_VIEW }
 ]
 
+const menuItems = computed(() => allMenuItems.filter((item) => hasPermission(item.permission)))
 const activePath = computed(() => route.path)
 </script>
 

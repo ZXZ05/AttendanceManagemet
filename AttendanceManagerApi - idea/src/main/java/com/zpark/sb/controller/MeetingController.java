@@ -30,7 +30,7 @@ public class MeetingController {
     @ResponseBody
     @RequestMapping(value = "/insert", method = RequestMethod.POST)
     public Result insert(@RequestBody Meeting meeting, HttpServletRequest request) {
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageAnnouncement(request)) {
             return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
         }
         meeting.setPublisherNumber(authContextService.getCurrentUserNumber(request));
@@ -45,7 +45,7 @@ public class MeetingController {
     @ResponseBody
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public int update(@RequestBody Meeting meeting, HttpServletRequest request) {
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageAnnouncement(request)) {
             return 403;
         }
         return meetingService.update(meeting);
@@ -54,7 +54,7 @@ public class MeetingController {
     @ResponseBody
     @RequestMapping(value = "/deleteById", method = RequestMethod.POST)
     public int deleteById(@RequestBody Meeting meeting, HttpServletRequest request) {
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageAnnouncement(request)) {
             return 403;
         }
         return meetingService.deleteById(meeting.getId());

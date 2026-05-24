@@ -1,6 +1,6 @@
 <template>
   <section class="work-page">
-    <PageHeader kicker="Approval Queue" title="我的任务" description="处理待审批的请假与固定资产申请，已完成的任务可继续查看详情。" />
+    <PageHeader kicker="Approval Queue" title="我的任务" description="处理待审批的请假、固定资产和考勤补卡申请，已完成的任务可继续查看详情。" />
 
     <el-card shadow="never">
       <el-table :data="tableData" border fit highlight-current-row>
@@ -73,6 +73,24 @@
           </el-form-item>
         </div>
 
+        <div v-if="isRepairTask" class="form-grid">
+          <el-form-item label="补卡日期">
+            <el-input v-model="detailForm.repairDate" readonly />
+          </el-form-item>
+          <el-form-item label="补卡类型">
+            <el-input v-model="detailForm.repairType" readonly />
+          </el-form-item>
+          <el-form-item label="上班时间">
+            <el-input v-model="detailForm.checkOnTime" readonly />
+          </el-form-item>
+          <el-form-item label="下班时间">
+            <el-input v-model="detailForm.checkOffTime" readonly />
+          </el-form-item>
+          <el-form-item label="补卡原因" class="form-grid-full">
+            <el-input v-model="detailForm.reason" type="textarea" :rows="2" readonly />
+          </el-form-item>
+        </div>
+
         <div v-if="showApprovalInfo" class="form-grid">
           <el-form-item label="审批人">
             <el-input v-model="detailForm.approvalName" readonly />
@@ -124,7 +142,8 @@ const statusMap = {
 
 const dialogTitle = computed(() => (showApprovalActions.value ? '审批任务' : '任务详情'))
 const isLeaveTask = computed(() => Number(detailForm.value.taskTypeID) === 1)
-const isFixedTask = computed(() => Number(detailForm.value.taskTypeID) === 2)
+const isFixedTask = computed(() => [2, 3].includes(Number(detailForm.value.taskTypeID)))
+const isRepairTask = computed(() => Number(detailForm.value.taskTypeID) === 4)
 
 function statusText(status) {
   const map = {
@@ -206,6 +225,10 @@ onMounted(loadData)
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.form-grid-full {
+  grid-column: 1 / -1;
 }
 
 @media (max-width: 720px) {

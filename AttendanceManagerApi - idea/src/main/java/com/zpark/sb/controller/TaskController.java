@@ -102,6 +102,9 @@ public class TaskController {
         if (existed == null || !authContextService.getCurrentUserNumber(request).equals(existed.getReceiveNumber())) {
             return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
         }
+        if (!"0".equals(existed.getStatus())) {
+            return Result.failure(ResultCode.DATA_IS_WRONG);
+        }
         task.setApprovalNumber(authContextService.getCurrentUserNumber(request));
         task.setReceiveNumber(existed.getReceiveNumber());
         int size = taskService.approval(task);

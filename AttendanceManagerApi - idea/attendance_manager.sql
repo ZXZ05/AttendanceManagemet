@@ -41,6 +41,32 @@ INSERT INTO `check1` VALUES ('7b43fa1f-780f-4019-8aa1-a91b1dd2787d', '10005', '2
 INSERT INTO `check1` VALUES ('cb8e362b-33e9-4361-a8fa-b2320da317e2', '10001', '2025-06-19', '', '2025-06-19 18:33:24', '2025-06-19 18:33:32', '杩熷埌', '姝ｅ父');
 
 -- ----------------------------
+-- Table structure for checkrepair
+-- ----------------------------
+DROP TABLE IF EXISTS `checkrepair`;
+CREATE TABLE `checkrepair`  (
+  `id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `applyNumber` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `taskTypeID` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `repairDate` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `repairType` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `checkOnTime` datetime NULL DEFAULT NULL,
+  `checkOffTime` datetime NULL DEFAULT NULL,
+  `reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `approvalID` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
+  `applyTime` datetime NULL DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of checkrepair
+-- ----------------------------
+INSERT INTO `checkrepair` VALUES ('cr000001-0000-4000-8000-000000000101', '10003', '4', '2026-05-18', '上班补卡', '2026-05-18 08:28:00', NULL, '外勤拜访客户，忘记上班打卡', '1', 'tsk-repair-approve-10003', '2026-05-18 10:05:00');
+INSERT INTO `checkrepair` VALUES ('cr000001-0000-4000-8000-000000000102', '10004', '4', '2026-05-19', '下班补卡', NULL, '2026-05-19 18:12:00', '下班时打卡机网络异常', '0', 'tsk-repair-pending-10004', '2026-05-19 18:30:00');
+INSERT INTO `checkrepair` VALUES ('cr000001-0000-4000-8000-000000000103', '10007', '4', '2026-05-16', '上下班补卡', '2026-05-16 08:40:00', '2026-05-16 17:55:00', '个人原因忘记打卡', '2', 'tsk-repair-reject-10007', '2026-05-16 18:20:00');
+
+-- ----------------------------
 -- Table structure for customer
 -- ----------------------------
 DROP TABLE IF EXISTS `customer`;
@@ -339,9 +365,10 @@ CREATE TABLE `tasktype`  (
 -- ----------------------------
 -- Records of tasktype
 -- ----------------------------
-INSERT INTO `tasktype` VALUES ('1', '0', '璇峰亣鐢宠');
-INSERT INTO `tasktype` VALUES ('2', '0', '鍥哄畾璧勪骇璐疆鐢宠');
-INSERT INTO `tasktype` VALUES ('3', '0', '鍥哄畾璧勪骇鎶ュ簾鐢宠');
+INSERT INTO `tasktype` VALUES ('1', '0', '请假申请');
+INSERT INTO `tasktype` VALUES ('2', '0', '固定资产购置申请');
+INSERT INTO `tasktype` VALUES ('3', '0', '固定资产报废申请');
+INSERT INTO `tasktype` VALUES ('4', '0', '考勤补卡申请');
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -387,6 +414,9 @@ INSERT INTO `task` VALUES ('tsk-leave-reject-10007', NULL, 'Eva leave request', 
 INSERT INTO `task` VALUES ('tsk-fixed-approve-10003', NULL, 'Alice fixed asset request', '2', '10003', '10002', '2026-05-07 10:15:00', '2026-05-07 14:20:00', '1', 'fa000001-0000-4000-8000-000000000101', '10002');
 INSERT INTO `task` VALUES ('tsk-fixed-pending-10004', NULL, 'Bob fixed asset request', '2', '10004', NULL, '2026-05-10 11:20:00', NULL, '0', 'fa000001-0000-4000-8000-000000000102', '10002');
 INSERT INTO `task` VALUES ('tsk-fixed-reject-10007', NULL, 'Eva fixed asset request', '2', '10007', '10002', '2026-05-11 16:05:00', '2026-05-11 18:30:00', '2', 'fa000001-0000-4000-8000-000000000103', '10002');
+INSERT INTO `task` VALUES ('tsk-repair-approve-10003', NULL, 'Alice check repair request', '4', '10003', '10002', '2026-05-18 10:05:00', '2026-05-18 11:20:00', '1', 'cr000001-0000-4000-8000-000000000101', '10002');
+INSERT INTO `task` VALUES ('tsk-repair-pending-10004', NULL, 'Bob check repair request', '4', '10004', NULL, '2026-05-19 18:30:00', NULL, '0', 'cr000001-0000-4000-8000-000000000102', '10002');
+INSERT INTO `task` VALUES ('tsk-repair-reject-10007', NULL, 'Eva check repair request', '4', '10007', '10002', '2026-05-16 18:20:00', '2026-05-16 19:05:00', '2', 'cr000001-0000-4000-8000-000000000103', '10002');
 
 -- Meeting and notice supplements (type: 1 meeting, 2 notice)
 INSERT INTO `meeting` VALUES ('mt000001-0000-4000-8000-000000000101', 'Weekly Engineering Sync', NULL, 'fa000001-0000-4000-8000-000000000104', 'R&D Team', 'Alice', 'Sprint review and blockers', '1', '10001', '2026-05-12 09:00:00', NULL, NULL, '2026-05-13 14:00:00', '2026-05-13 15:00:00');

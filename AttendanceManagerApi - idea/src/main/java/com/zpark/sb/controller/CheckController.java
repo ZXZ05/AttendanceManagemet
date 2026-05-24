@@ -63,7 +63,7 @@ public class CheckController {
     @ResponseBody
     @RequestMapping(value = "/findByNumber", method = RequestMethod.POST)
     public List<Check> findByNumber(@RequestBody Check check, HttpServletRequest request) {
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canViewStatistics(request)) {
             check.setEmployeeID(authContextService.getCurrentUserNumber(request));
         }
         return checkService.findByNumber(check.getEmployeeID());
@@ -72,7 +72,7 @@ public class CheckController {
     @ResponseBody
     @RequestMapping(value = "/findByMonth", method = RequestMethod.POST)
     public List<Check> findByMonth(@RequestBody Check check, HttpServletRequest request) {
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canViewStatistics(request)) {
             check.setEmployeeID(authContextService.getCurrentUserNumber(request));
             return checkService.findByNumberAndMonth(check);
         }
@@ -82,7 +82,7 @@ public class CheckController {
     @ResponseBody
     @RequestMapping(value = "/findByNumberAndMonth", method = RequestMethod.POST)
     public List<Check> findByNumberAndMonth(@RequestBody Check check, HttpServletRequest request) {
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canViewStatistics(request)) {
             check.setEmployeeID(authContextService.getCurrentUserNumber(request));
         }
         return checkService.findByNumberAndMonth(check);
@@ -97,7 +97,7 @@ public class CheckController {
     @ResponseBody
     @RequestMapping(value = "/getCheckInfo", method = RequestMethod.POST)
     public Check getCheckInfo(@RequestBody Check check, HttpServletRequest request) {
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canViewStatistics(request)) {
             check.setEmployeeID(authContextService.getCurrentUserNumber(request));
         }
         Check check1 = new Check();
@@ -120,7 +120,7 @@ public class CheckController {
         List<Check> checkList = new ArrayList<>();
         List<Employee> employeeList = employeeService.getAll();
         for (Employee item : employeeList) {
-            if (!authContextService.isAdmin(request)
+            if (!authContextService.canViewStatistics(request)
                     && !item.getNumber().equals(authContextService.getCurrentUserNumber(request))) {
                 continue;
             }
@@ -143,7 +143,7 @@ public class CheckController {
 
     @RequestMapping(value = "/exportExcel", method = RequestMethod.GET)
     public void export(HttpServletResponse response, @RequestParam String month, HttpServletRequest request) throws IOException {
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canViewStatistics(request)) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return;
         }

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.zpark.sb.dao.CheckRepairDao">
+  <resultMap id="BaseResultMap" type="com.zpark.sb.entity.CheckRepair">
+    <id column="id" property="id" jdbcType="VARCHAR" />
+    <result column="applyNumber" property="applyNumber" jdbcType="VARCHAR" />
+    <result column="applyName" property="applyName" jdbcType="VARCHAR" />
+    <result column="taskTypeID" property="taskTypeID" jdbcType="VARCHAR" />
+    <result column="repairDate" property="repairDate" jdbcType="VARCHAR" />
+    <result column="repairType" property="repairType" jdbcType="VARCHAR" />
+    <result column="checkOnTime" property="checkOnTime" jdbcType="TIMESTAMP" />
+    <result column="checkOffTime" property="checkOffTime" jdbcType="TIMESTAMP" />
+    <result column="reason" property="reason" jdbcType="VARCHAR" />
+    <result column="status" property="status" jdbcType="VARCHAR" />
+    <result column="approvalID" property="approvalID" jdbcType="VARCHAR" />
+    <result column="applyTime" property="applyTime" jdbcType="TIMESTAMP" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    a.id, a.applyNumber, a.taskTypeID, a.repairDate, a.repairType, a.checkOnTime, a.checkOffTime,
+    a.reason, a.status, a.approvalID, a.applyTime
+  </sql>
+
+  <select id="selectById" resultMap="BaseResultMap" parameterType="java.lang.String">
+    select
+    <include refid="Base_Column_List" />
+    from checkrepair a
+    where a.id = #{id}
+  </select>
+
+  <delete id="deleteById" parameterType="java.lang.String">
+    delete from checkrepair
+    where id = #{id}
+  </delete>
+
+  <insert id="insert" parameterType="com.zpark.sb.entity.CheckRepair">
+    insert into checkrepair
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">id,</if>
+      <if test="applyNumber != null">applyNumber,</if>
+      <if test="taskTypeID != null">taskTypeID,</if>
+      <if test="repairDate != null">repairDate,</if>
+      <if test="repairType != null">repairType,</if>
+      <if test="checkOnTime != null">checkOnTime,</if>
+      <if test="checkOffTime != null">checkOffTime,</if>
+      <if test="reason != null">reason,</if>
+      <if test="status != null">status,</if>
+      <if test="approvalID != null">approvalID,</if>
+      <if test="applyTime != null">applyTime,</if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">#{id},</if>
+      <if test="applyNumber != null">#{applyNumber},</if>
+      <if test="taskTypeID != null">#{taskTypeID},</if>
+      <if test="repairDate != null">#{repairDate},</if>
+      <if test="repairType != null">#{repairType},</if>
+      <if test="checkOnTime != null">#{checkOnTime},</if>
+      <if test="checkOffTime != null">#{checkOffTime},</if>
+      <if test="reason != null">#{reason},</if>
+      <if test="status != null">#{status},</if>
+      <if test="approvalID != null">#{approvalID},</if>
+      <if test="applyTime != null">#{applyTime},</if>
+    </trim>
+  </insert>
+
+  <update id="update" parameterType="com.zpark.sb.entity.CheckRepair">
+    update checkrepair
+    <set>
+      <if test="applyNumber != null">applyNumber = #{applyNumber},</if>
+      <if test="taskTypeID != null">taskTypeID = #{taskTypeID},</if>
+      <if test="repairDate != null">repairDate = #{repairDate},</if>
+      <if test="repairType != null">repairType = #{repairType},</if>
+      <if test="checkOnTime != null">checkOnTime = #{checkOnTime},</if>
+      <if test="checkOffTime != null">checkOffTime = #{checkOffTime},</if>
+      <if test="reason != null">reason = #{reason},</if>
+      <if test="status != null">status = #{status},</if>
+      <if test="approvalID != null">approvalID = #{approvalID},</if>
+      <if test="applyTime != null">applyTime = #{applyTime},</if>
+    </set>
+    where id = #{id}
+  </update>
+
+  <select id="findByEmployeeNumber" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    ,(select employeeName from employee b where a.applyNumber = b.employeeNumber) as applyName
+    from checkrepair a
+    where a.applyNumber = #{applyNumber}
+    order by a.applyTime desc
+  </select>
+
+  <select id="findActiveByEmployeeNumberAndDate" resultMap="BaseResultMap" parameterType="com.zpark.sb.entity.CheckRepair">
+    select
+    <include refid="Base_Column_List" />
+    from checkrepair a
+    where a.applyNumber = #{applyNumber}
+      and a.repairDate = #{repairDate}
+      and (a.status = '0' or a.status = '1')
+  </select>
+
+  <select id="findForStatistics" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    ,(select employeeName from employee b where a.applyNumber = b.employeeNumber) as applyName
+    from checkrepair a
+    <where>
+      <if test="month != null and month != ''">
+        a.repairDate like concat(#{month}, '%')
+      </if>
+    </where>
+    order by a.applyTime desc
+  </select>
+</mapper>

@@ -2,6 +2,7 @@ package com.zpark.sb.service;
 
 import com.zpark.sb.dao.CheckDao;
 import com.zpark.sb.entity.Check;
+import com.zpark.sb.entity.CheckRepair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,6 +100,65 @@ public class CheckService {
             checkDao.update(record);
         }
         return 0;
+    }
+
+    public int repairAttendance(CheckRepair repair) throws ParseException {
+        if (repair == null || ObjectUtils.isEmpty(repair.getApplyNumber()) || ObjectUtils.isEmpty(repair.getRepairDate())) {
+            return 1;
+        }
+
+        Check query = new Check();
+        query.setEmployeeID(repair.getApplyNumber());
+        query.setDate(repair.getRepairDate());
+        Check record = findByNumberAndDate(query);
+        boolean isNew = record == null;
+        if (isNew) {
+            record = new Check();
+            record.setId(UUID.randomUUID().toString());
+            record.setEmployeeID(repair.getApplyNumber());
+            record.setDate(repair.getRepairDate());
+        }
+        if (repair.getCheckOnTime() != null) {
+            record.setCheckOnTime(repair.getCheckOnTime());
+            record.setCheckOnStatus(resolveCheckOnStatus(repair.getCheckOnTime()));
+        }
+        if (repair.getCheckOffTime() != null) {
+            record.setCheckOffTime(repair.getCheckOffTime());
+            record.setCheckOffStatus(resolveCheckOffStatus(repair.getCheckOffTime()));
+        }
+
+        if (isNew) {
+            checkDao.insert(record);
+        } else {
+            checkDao.update(record);
+        }
+        return 0;
+    }
+
+    private String resolveCheckOnStatus(Date checkOnTime) throws ParseException {
+        SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm:ss");
+        Date actualTime = timeFormatter.parse(timeFormatter.format(checkOnTime));
+        Date standardTime;
+        try {
+            standardTime = timeFormatter.parse(onTime + ":00");
+        } catch (ParseException e) {
+            log.warn("Invalid attendance.on-time config: {}, fallback to 08:30", onTime);
+            standardTime = timeFormatter.parse("08:30:00");
+        }
+        return actualTime.before(standardTime) ? NORMAL : LATE;
+    }
+
+    private String resolveCheckOffStatus(Date checkOffTime) throws ParseException {
+        SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm:ss");
+        Date actualTime = timeFormatter.parse(timeFormatter.format(checkOffTime));
+        Date standardTime;
+        try {
+            standardTime = timeFormatter.parse(offTime + ":00");
+        } catch (ParseException e) {
+            log.warn("Invalid attendance.off-time config: {}, fallback to 17:30", offTime);
+            standardTime = timeFormatter.parse("17:30:00");
+        }
+        return actualTime.after(standardTime) ? NORMAL : LEAVE_EARLY;
     }
 
     public int getCheckOn(Check check) {

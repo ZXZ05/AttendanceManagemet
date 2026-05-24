@@ -23,7 +23,7 @@ public class SalaryController {
     @ResponseBody
     @RequestMapping(value = "/payOff",method = RequestMethod.POST)
     public Result payOff(@RequestBody Check check, HttpServletRequest request) {
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageFinance(request)) {
             return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
         }
         int size = salaryService.payOff(check);
@@ -39,7 +39,7 @@ public class SalaryController {
     @ResponseBody
     @RequestMapping(value = "/findByNumberAndMonth",method = RequestMethod.POST)
     public Salary findByNumberAndMonth(@RequestBody Check check, HttpServletRequest request) {
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageFinance(request)) {
             check.setEmployeeID(authContextService.getCurrentUserNumber(request));
         }
         return salaryService.findByNumberAndMonth(check);

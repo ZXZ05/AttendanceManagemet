@@ -1,14 +1,17 @@
 package com.zpark.sb.service;
 
+import com.zpark.sb.dao.CheckRepairDao;
 import com.zpark.sb.dao.FixedassetsDao;
 import com.zpark.sb.dao.LeaveDao;
 import com.zpark.sb.dao.TaskDao;
 import com.zpark.sb.entity.Apply;
 import com.zpark.sb.entity.Check;
+import com.zpark.sb.entity.CheckRepair;
 import com.zpark.sb.entity.FixedassetType;
 import com.zpark.sb.entity.Fixedassets;
 import com.zpark.sb.entity.Leave;
 import com.zpark.sb.entity.Task;
+import com.zpark.sb.entity.TaskType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +34,8 @@ public class TaskService {
     private LeaveDao leaveDao;
     @Autowired
     private FixedassetsDao fixedassetsDao;
+    @Autowired
+    private CheckRepairDao checkRepairDao;
     @Autowired
     private CheckService checkService;
     @Autowired
@@ -64,7 +69,7 @@ public class TaskService {
     }
 
     public Apply findByApplyID(Task task) {
-        task.setType(taskTypeService.selectById(task.getTypeID()).getName());
+        task.setType(resolveTypeName(task.getTypeID()));
         return taskDao.findByApplyID(task);
     }
 
@@ -77,6 +82,8 @@ public class TaskService {
                 item.setStatusName("已通过");
             } else if ("2".equals(item.getStatus())) {
                 item.setStatusName("已驳回");
+            } else if ("3".equals(item.getStatus())) {
+                item.setStatusName("已撤销");
             }
         }
         return taskList;
@@ -87,7 +94,7 @@ public class TaskService {
             return 1;
         }
 
-        String type = taskTypeService.selectById(task.getTypeID()).getName();
+        String type = resolveTypeName(task.getTypeID());
         task.setType(type);
         Apply apply = taskDao.findByApplyID(task);
         if (apply == null) {
@@ -145,6 +152,14 @@ public class TaskService {
                     fixedassetType.setQuantity(quantity + 1);
                     fixedassetTypeService.update(fixedassetType);
                 }
+            } else if ("考勤补卡申请".equals(type)) {
+                CheckRepair checkRepair = checkRepairDao.selectById(apply.getId());
+                if (checkRepair == null) {
+                    return 1;
+                }
+                checkRepair.setStatus("1");
+                checkRepairDao.update(checkRepair);
+                checkService.repairAttendance(checkRepair);
             }
             return 0;
         }
@@ -164,10 +179,27 @@ public class TaskService {
                     fixedassets.setStatus("2");
                     fixedassetsDao.update(fixedassets);
                 }
+            } else if ("考勤补卡申请".equals(type)) {
+                CheckRepair checkRepair = checkRepairDao.selectById(apply.getId());
+                if (checkRepair != null) {
+                    checkRepair.setStatus("2");
+                    checkRepairDao.update(checkRepair);
+                }
             }
             return 0;
         }
 
         return 1;
+    }
+
+    private String resolveTypeName(String typeID) {
+        TaskType taskType = taskTypeService.selectById(typeID);
+        if (taskType != null) {
+            return taskType.getName();
+        }
+        if (CheckRepairService.TASK_TYPE_ID.equals(typeID)) {
+            return CheckRepairService.TASK_TYPE_NAME;
+        }
+        return "";
     }
 }

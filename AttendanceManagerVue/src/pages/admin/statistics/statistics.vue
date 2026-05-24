@@ -1,8 +1,39 @@
 <template>
   <section class="statistics-page">
-    <PageHeader kicker="Analytics" title="统计分析" description="按学历、年龄和入职趋势查看员工结构变化。" />
+    <PageHeader kicker="Analytics" title="统计分析" description="按学历、年龄、入职趋势和补卡异常查看组织运行状态。">
+      <template #actions>
+        <el-date-picker v-model="repairMonth" type="month" value-format="YYYY-MM" placeholder="补卡统计月份" />
+        <el-button type="primary" @click="loadRepairStats">刷新补卡统计</el-button>
+      </template>
+    </PageHeader>
+
+    <div class="metric-grid">
+      <MetricCard label="补卡申请" :value="repairStats.total" hint="次" />
+      <MetricCard label="待审批" :value="repairStats.pending" hint="次" />
+      <MetricCard label="已通过" :value="repairStats.approved" hint="次" />
+      <MetricCard label="高频异常员工" :value="topEmployeeName" hint="TOP 1" />
+    </div>
 
     <div class="chart-grid">
+      <el-card shadow="never">
+        <template #header>
+          <strong>补卡类型分布</strong>
+        </template>
+        <div id="repairTypes" class="chart"></div>
+      </el-card>
+
+      <el-card shadow="never">
+        <template #header>
+          <strong>高频异常员工</strong>
+        </template>
+        <el-table :data="repairStats.topEmployees" border fit highlight-current-row>
+          <el-table-column prop="employeeName" label="员工" min-width="120" />
+          <el-table-column prop="employeeNumber" label="编号" width="110" />
+          <el-table-column prop="count" label="补卡次数" width="110" />
+          <el-table-column prop="pending" label="待审批" width="100" />
+        </el-table>
+      </el-card>
+
       <el-card shadow="never">
         <template #header>
           <strong>员工学历分布</strong>
@@ -32,9 +63,11 @@ import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { Chart } from '@antv/g2'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
-import { getAgeStats, getEducationStats, getNewEmployeeStats } from '@/api/statistics'
+import MetricCard from '@/components/common/MetricCard.vue'
+import { getAgeStats, getCheckRepairStats, getEducationStats, getNewEmployeeStats } from '@/api/statistics'
 
 const charts = reactive({
+  repairTypes: null,
   education: null,
   age: null,
   newcomers: null
@@ -43,6 +76,9 @@ const charts = reactive({
 const education = ref([])
 const age = ref([])
 const newcomers = ref([])
+const repairMonth = ref(getMonthText(new Date()))
+const repairStats = reactive(createRepairStats())
+const topEmployeeName = ref('-')
 
 function destroyChart(name) {
   if (charts[name]) {
@@ -71,6 +107,26 @@ function renderEducation() {
   chart.interaction('element-active')
   chart.render()
   charts.education = chart
+}
+
+function renderRepairTypes() {
+  const container = document.getElementById('repairTypes')
+  if (!container) return
+  destroyChart('repairTypes')
+
+  const chart = new Chart({
+    container: 'repairTypes',
+    autoFit: true,
+    height: 330,
+    padding: [28, 20, 42, 42]
+  })
+  chart.data(repairStats.typeItems)
+  chart.axis('value', false)
+  chart.tooltip({ showMarkers: false })
+  chart.interval().position('type*value').color('type')
+  chart.interaction('element-active')
+  chart.render()
+  charts.repairTypes = chart
 }
 
 function renderAge() {
@@ -115,15 +171,18 @@ function renderNewcomers() {
 
 async function loadAll() {
   try {
-    const [educationData, ageData, newData] = await Promise.all([
+    const [educationData, ageData, newData, repairData] = await Promise.all([
       getEducationStats(),
       getAgeStats(),
-      getNewEmployeeStats()
+      getNewEmployeeStats(),
+      getCheckRepairStats({ month: repairMonth.value })
     ])
     education.value = Array.isArray(educationData) ? educationData : []
     age.value = Array.isArray(ageData) ? ageData : []
     newcomers.value = Array.isArray(newData) ? newData : []
+    setRepairStats(repairData)
     await nextTick()
+    renderRepairTypes()
     renderEducation()
     renderAge()
     renderNewcomers()
@@ -132,9 +191,43 @@ async function loadAll() {
   }
 }
 
+async function loadRepairStats() {
+  try {
+    const data = await getCheckRepairStats({ month: repairMonth.value })
+    setRepairStats(data)
+    await nextTick()
+    renderRepairTypes()
+  } catch (error) {
+    ElMessage.error('补卡统计加载失败')
+  }
+}
+
+function createRepairStats() {
+  return {
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    revoked: 0,
+    topEmployees: [],
+    typeItems: []
+  }
+}
+
+function setRepairStats(data = {}) {
+  Object.assign(repairStats, createRepairStats(), data || {})
+  topEmployeeName.value = repairStats.topEmployees?.[0]?.employeeName || '-'
+}
+
+function getMonthText(date) {
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`
+}
+
 onMounted(loadAll)
 
 onBeforeUnmount(() => {
+  destroyChart('repairTypes')
   destroyChart('education')
   destroyChart('age')
   destroyChart('newcomers')
@@ -151,6 +244,12 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
 }
 
 .wide {

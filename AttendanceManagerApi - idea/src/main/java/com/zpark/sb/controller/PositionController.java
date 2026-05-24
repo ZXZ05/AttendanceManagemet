@@ -24,7 +24,7 @@ public class PositionController {
     @ResponseBody
     @RequestMapping(value = "/insert",method = RequestMethod.POST)
     public Result insert(@RequestBody Position position, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageOrg(request)) {
             return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
         }
         int size = positionService.insert(position);
@@ -38,7 +38,7 @@ public class PositionController {
     @ResponseBody
     @RequestMapping(value = "/findByDepartmentID",method = RequestMethod.POST)
     public List<Position> findByDepartmentID(@RequestBody Position position, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageOrg(request)) {
             return Collections.emptyList();
         }
         return positionService.findByDepartmentID(position.getDepartmentID());
@@ -47,7 +47,7 @@ public class PositionController {
     @ResponseBody
     @RequestMapping(value = "/deleteById",method = RequestMethod.POST)
     public Result deleteById(@RequestBody Position position, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageOrg(request)) {
             return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
         }
         int size = positionService.deleteById(position.getId());
@@ -63,7 +63,7 @@ public class PositionController {
     @ResponseBody
     @RequestMapping(value = "/update",method = RequestMethod.POST)
     public int update(@RequestBody Position position, HttpServletRequest request){
-        if (!authContextService.isAdmin(request)) {
+        if (!authContextService.canManageOrg(request)) {
             return 403;
         }
 //        int size = positionService.update(position);

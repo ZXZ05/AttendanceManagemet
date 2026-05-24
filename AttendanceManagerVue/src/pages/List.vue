@@ -12,7 +12,7 @@
       <div class="user-area">
         <span class="user-name">{{ displayName }}</span>
         <el-tag size="small" :type="isAdminUser ? 'warning' : 'info'" effect="light">
-          {{ isAdminUser ? '管理员' : '员工' }}
+          {{ roleLabel }}
         </el-tag>
       </div>
     </header>
@@ -26,7 +26,7 @@
         <el-icon><Suitcase /></el-icon>
         <span>工作台</span>
       </el-menu-item>
-      <el-menu-item v-if="isAdminUser" index="/admin">
+      <el-menu-item v-if="canOpenAdmin" index="/admin">
         <el-icon><Setting /></el-icon>
         <span>管理端</span>
       </el-menu-item>
@@ -47,7 +47,7 @@ import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { House, Setting, Suitcase, SwitchButton } from '@element-plus/icons-vue'
 import { loadCurrentUser, useUser } from '@/stores/user'
-import { clearLoginSession, USER_TYPE } from '@/utils/auth'
+import { canAccessAdminPortal, clearLoginSession, getRoleLabel, isAdmin } from '@/utils/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -55,10 +55,18 @@ const router = useRouter()
 const { name, type } = useUser()
 
 const displayName = computed(() => name.value || '未命名用户')
-const isAdminUser = computed(() => type.value === USER_TYPE.ADMIN)
+const roleLabel = computed(() => getRoleLabel(type.value))
+const isAdminUser = computed(() => isAdmin(type.value))
+const canOpenAdmin = computed(() => canAccessAdminPortal(type.value))
 const activeMenu = computed(() => {
   const path = route.path
-  if (path.startsWith('/admin')) {
+  if (
+    path.startsWith('/admin')
+    || path.startsWith('/employee')
+    || path.startsWith('/department')
+    || path.startsWith('/finance')
+    || path.startsWith('/statistics')
+  ) {
     return '/admin'
   }
   if (path.startsWith('/task') || path.startsWith('/work')) {

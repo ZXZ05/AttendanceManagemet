@@ -8,6 +8,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthContextService {
 
+    public static final String ROLE_SUPERVISOR = "2";
+    public static final String ROLE_SYS_ADMIN = "3";
+    public static final String ROLE_EMPLOYEE = "4";
+    public static final String ROLE_HR = "5";
+    public static final String ROLE_FINANCE = "6";
+
     private final EmployeeService employeeService;
 
     public AuthContextService(EmployeeService employeeService) {
@@ -26,7 +32,44 @@ public class AuthContextService {
 
     public boolean isAdmin(HttpServletRequest request) {
         Employee currentUser = getCurrentUser(request);
-        return currentUser != null && "3".equals(currentUser.getType());
+        return currentUser != null && ROLE_SYS_ADMIN.equals(currentUser.getType());
+    }
+
+    public boolean hasRole(HttpServletRequest request, String... roles) {
+        Employee currentUser = getCurrentUser(request);
+        if (currentUser == null || currentUser.getType() == null || roles == null) {
+            return false;
+        }
+        for (String role : roles) {
+            if (role != null && role.equals(currentUser.getType())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean canAccessAdminPortal(HttpServletRequest request) {
+        return hasRole(request, ROLE_SUPERVISOR, ROLE_HR, ROLE_FINANCE, ROLE_SYS_ADMIN);
+    }
+
+    public boolean canManageEmployee(HttpServletRequest request) {
+        return hasRole(request, ROLE_HR, ROLE_SYS_ADMIN);
+    }
+
+    public boolean canManageOrg(HttpServletRequest request) {
+        return hasRole(request, ROLE_HR, ROLE_SYS_ADMIN);
+    }
+
+    public boolean canManageFinance(HttpServletRequest request) {
+        return hasRole(request, ROLE_FINANCE, ROLE_SYS_ADMIN);
+    }
+
+    public boolean canViewStatistics(HttpServletRequest request) {
+        return hasRole(request, ROLE_SUPERVISOR, ROLE_HR, ROLE_FINANCE, ROLE_SYS_ADMIN);
+    }
+
+    public boolean canManageAnnouncement(HttpServletRequest request) {
+        return hasRole(request, ROLE_SUPERVISOR, ROLE_HR, ROLE_FINANCE, ROLE_SYS_ADMIN);
     }
 
     public boolean isSelfOrAdmin(HttpServletRequest request, String employeeNumber) {
@@ -37,4 +80,3 @@ public class AuthContextService {
         return currentUserNumber != null && currentUserNumber.equals(employeeNumber);
     }
 }
-

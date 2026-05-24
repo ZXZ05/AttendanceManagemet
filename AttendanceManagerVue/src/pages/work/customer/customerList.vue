@@ -77,14 +77,14 @@ import DataToolbar from '@/components/common/DataToolbar.vue'
 import FormDialog from '@/components/common/FormDialog.vue'
 import { createCustomer, deleteCustomerById, findCustomerByApplyNumber, findCustomerByNameAndType, getCustomerList, updateCustomer } from '@/api/customer'
 import { loadCurrentUser, useUser } from '@/stores/user'
-import { getLoginUsername, USER_TYPE } from '@/utils/auth'
+import { canAccessAdminPortal, getLoginUsername } from '@/utils/auth'
 
 const loginNumber = getLoginUsername() || ''
 const { type } = useUser()
 const tableData = ref([])
 const dialogVisible = ref(false)
 const isCreate = ref(false)
-const isAdmin = computed(() => type.value === USER_TYPE.ADMIN)
+const isAdmin = computed(() => canAccessAdminPortal(type.value))
 const formRef = ref()
 
 const customerTypeList = [

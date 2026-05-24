@@ -69,6 +69,25 @@ public class FixedassetService {
         return 0;
     }
 
+    public int adminImportInsert(Fixedassets fixedassets) {
+        Fixedassets existed = findByNumber(fixedassets.getNumber());
+        if (existed != null) {
+            return 1;
+        }
+        fixedassets.setId(UUID.randomUUID().toString());
+        if (fixedassets.getApplyTime() == null) {
+            fixedassets.setApplyTime(new java.util.Date());
+        }
+        if (fixedassets.getStatus() == null) {
+            fixedassets.setStatus("1");
+        }
+        if (fixedassets.getTaskTypeID() == null) {
+            fixedassets.setTaskTypeID("2");
+        }
+        fixedassetsDao.insert(fixedassets);
+        return 0;
+    }
+
     public Fixedassets selectById(String id) {
         return fixedassetsDao.selectById(id);
     }
