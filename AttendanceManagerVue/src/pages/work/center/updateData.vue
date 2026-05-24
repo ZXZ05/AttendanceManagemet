@@ -1,89 +1,101 @@
 <template>
-    <el-form :model="ruleForm" status-icon :rules="rules" ref="ruleForm" label-width="125px" class="demo-ruleForm" style="margin-top:50px;width:40%;">
-  <el-form-item label="新密码" prop="password">
-    <el-input type="password" v-model="ruleForm.password" autocomplete="off" placeholder="请输入新密码"></el-input>
-  </el-form-item>
-  <el-form-item label="确认密码" prop="checkPass">
-    <el-input type="password" v-model="ruleForm.checkPass" autocomplete="off" placeholder="请再输入一次"></el-input>
-  </el-form-item>
-  <el-form-item>
-    <el-button type="primary" @click="submitForm('ruleForm')"> 提交</el-button>
-    <el-button type="warning" @click="resetForm('ruleForm')"> 重置</el-button>
-  </el-form-item>
-</el-form>
+  <section class="password-page">
+    <PageHeader kicker="Security" title="修改密码" description="更新当前账号密码，提交成功后可继续使用新密码登录。" />
+
+    <el-card shadow="never" class="password-card">
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
+        <el-form-item label="旧密码" prop="oldPassword">
+          <el-input v-model="form.oldPassword" type="password" show-password autocomplete="off" placeholder="请输入旧密码" />
+        </el-form-item>
+        <el-form-item label="新密码" prop="password">
+          <el-input v-model="form.password" type="password" show-password autocomplete="off" placeholder="请输入新密码" />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="checkPass">
+          <el-input v-model="form.checkPass" type="password" show-password autocomplete="off" placeholder="请再次输入新密码" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="submitForm">提交</el-button>
+          <el-button type="warning" @click="resetForm">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+  </section>
 </template>
 
-<script>
-  import axios from '@/axios/axios'
-  import { getLoginUsername } from '@/utils/auth'
-  export default {
-    data() {
-      var validatePass = (rule, value, callback) => {
-        if (value === '') {
-          callback(new Error('请输入密码'));
-        } else {
-          if (this.ruleForm.checkPass !== '') {
-            this.$refs.ruleForm.validateField('checkPass');
-          }
-          callback();
+<script setup>
+import { reactive, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import PageHeader from '@/components/common/PageHeader.vue'
+import { updatePassword } from '@/api/employee'
+import { getLoginUsername } from '@/utils/auth'
+
+const formRef = ref()
+const form = reactive({
+  number: getLoginUsername(),
+  oldPassword: '',
+  password: '',
+  checkPass: ''
+})
+
+const rules = {
+  oldPassword: [{ required: true, message: '请输入旧密码', trigger: 'blur' }],
+  password: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, max: 32, message: '密码长度需在 6 到 32 位之间', trigger: 'blur' }
+  ],
+  checkPass: [
+    {
+      validator: (_, value, callback) => {
+        if (!value) {
+          callback(new Error('请再次输入密码'))
+          return
         }
-      };
-      var validatePass2 = (rule, value, callback) => {
-        if (value === '') {
-          callback(new Error('请再次输入密码'));
-        } else if (value !== this.ruleForm.password) {
-          callback(new Error('两次输入密码不一致!'));
-        } else {
-          callback();
+        if (value !== form.password) {
+          callback(new Error('两次输入密码不一致'))
+          return
         }
-      };
-      return {
-        ruleForm: {
-          id: '',
-          number: getLoginUsername(),
-          name: '',
-          sex: '',
-          birthday: '',
-          departmentID: '',
-          position: '',
-          type: '',
-          entryDate: '',
-          phone: '',
-          address: '',
-          password: '',
-          checkPass: '',
-        },
-        rules: {
-          pass: [
-            { validator: validatePass, trigger: 'blur' }
-          ],
-          checkPass: [
-            { validator: validatePass2, trigger: 'blur' }
-          ],
-        }
-      };
-    },
-    methods: {
-      submitForm(formName) {
-        this.$refs[formName].validate((valid) => {
-          if (valid) {
-            axios.post('/employee/updatePassword',this.ruleForm).then(res => {
-            this.$message({ message: "修改成功", type: "success" });
-            this.$refs[formName].resetFields();
-            })
-          } else {
-            //console.log('error submit!!');
-            return false;
-          }
-        });
+        callback()
       },
-      resetForm(formName) {
-        this.$refs[formName].resetFields();
-      }
+      trigger: 'blur'
     }
+  ]
+}
+
+async function submitForm() {
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  try {
+    const data = await updatePassword({
+      number: form.number,
+      oldPassword: form.oldPassword,
+      password: form.password
+    })
+
+    if (data?.code === 200) {
+      ElMessage.success('修改成功')
+      resetForm()
+      return
+    }
+
+    ElMessage.error(data?.message || '修改失败')
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || error?.message || '修改请求失败')
   }
+}
+
+function resetForm() {
+  formRef.value?.resetFields()
+}
 </script>
 
-<style>
+<style scoped>
+.password-page {
+  display: grid;
+  gap: 16px;
+}
 
+.password-card {
+  max-width: 520px;
+}
 </style>

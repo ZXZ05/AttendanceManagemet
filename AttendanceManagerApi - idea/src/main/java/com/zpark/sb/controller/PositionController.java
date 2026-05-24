@@ -3,10 +3,13 @@ package com.zpark.sb.controller;
 import com.zpark.sb.config.Result;
 import com.zpark.sb.config.ResultCode;
 import com.zpark.sb.entity.Position;
+import com.zpark.sb.service.AuthContextService;
 import com.zpark.sb.service.PositionService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -15,10 +18,15 @@ public class PositionController {
 
     @Autowired
     private PositionService positionService;
+    @Autowired
+    private AuthContextService authContextService;
 
     @ResponseBody
     @RequestMapping(value = "/insert",method = RequestMethod.POST)
-    public Result insert(@RequestBody Position position){
+    public Result insert(@RequestBody Position position, HttpServletRequest request){
+        if (!authContextService.isAdmin(request)) {
+            return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
+        }
         int size = positionService.insert(position);
         if(size == 1){
             return Result.failure(ResultCode.USER_HAS_EXISTED);
@@ -29,13 +37,19 @@ public class PositionController {
 
     @ResponseBody
     @RequestMapping(value = "/findByDepartmentID",method = RequestMethod.POST)
-    public List<Position> findByDepartmentID(@RequestBody Position position){
+    public List<Position> findByDepartmentID(@RequestBody Position position, HttpServletRequest request){
+        if (!authContextService.isAdmin(request)) {
+            return Collections.emptyList();
+        }
         return positionService.findByDepartmentID(position.getDepartmentID());
     }
 
     @ResponseBody
     @RequestMapping(value = "/deleteById",method = RequestMethod.POST)
-    public Result deleteById(@RequestBody Position position){
+    public Result deleteById(@RequestBody Position position, HttpServletRequest request){
+        if (!authContextService.isAdmin(request)) {
+            return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
+        }
         int size = positionService.deleteById(position.getId());
         if(size == 0){
             return Result.success();
@@ -48,7 +62,10 @@ public class PositionController {
 
     @ResponseBody
     @RequestMapping(value = "/update",method = RequestMethod.POST)
-    public int update(@RequestBody Position position){
+    public int update(@RequestBody Position position, HttpServletRequest request){
+        if (!authContextService.isAdmin(request)) {
+            return 403;
+        }
 //        int size = positionService.update(position);
 //        if(size == 1){
 //            return Result.failure(ResultCode.USER_HAS_EXISTED);

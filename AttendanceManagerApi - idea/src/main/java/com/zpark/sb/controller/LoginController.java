@@ -3,11 +3,10 @@ package com.zpark.sb.controller;
 import com.zpark.sb.config.Result;
 import com.zpark.sb.config.ResultCode;
 import com.zpark.sb.entity.Employee;
+import com.zpark.sb.service.AuthTokenService;
 import com.zpark.sb.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,10 +18,12 @@ public class LoginController {
 
     @Autowired
     private EmployeeService employeeService;
+    @Autowired
+    private AuthTokenService authTokenService;
 
     @ResponseBody
     @RequestMapping(value = "/login",method = RequestMethod.POST)
-    public Result login(@RequestBody Employee employee, HttpServletResponse response){
+    public Result login(@RequestBody Employee employee){
         if (employee == null
                 || isBlank(employee.getNumber())
                 || isBlank(employee.getPassword())) {
@@ -31,7 +32,8 @@ public class LoginController {
         int s;
         Employee employee1 = employeeService.findByNumber(employee.getNumber());
         if(employee1 != null){
-            if(employee.getPassword().equals(employee1.getPassword())){
+            if(employeeService.verifyPassword(employee.getPassword(), employee1.getPassword())){
+                employeeService.upgradePasswordIfNeeded(employee1, employee.getPassword());
                 s = 1;
             }else {
                 s = 0;
@@ -40,7 +42,8 @@ public class LoginController {
             s = -1;
         }
         if(s == 1){
-            return Result.success(buildLoginUser(employee1));
+            String token = authTokenService.createToken(employee1.getNumber());
+            return Result.success(buildLoginUser(employee1, token));
         }else if(s == 0){
             return Result.failure(ResultCode.USER_LOGIN_ERROR);
         }else if(s == -1){
@@ -68,14 +71,15 @@ public class LoginController {
             return Result.failure(ResultCode.USER_HAS_EXISTED);
         }
         Employee saved = employeeService.findByNumber(employee.getNumber());
-        return Result.success(buildLoginUser(saved));
+        String token = authTokenService.createToken(saved.getNumber());
+        return Result.success(buildLoginUser(saved, token));
     }
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
     }
 
-    private Map<String, Object> buildLoginUser(Employee employee) {
+    private Map<String, Object> buildLoginUser(Employee employee, String token) {
         Map<String, Object> user = new HashMap<>();
         user.put("id", employee.getId());
         user.put("number", employee.getNumber());
@@ -83,6 +87,7 @@ public class LoginController {
         user.put("phone", employee.getPhone());
         user.put("type", employee.getType());
         user.put("departmentID", employee.getDepartmentID());
+        user.put("token", token);
         return user;
     }
 }

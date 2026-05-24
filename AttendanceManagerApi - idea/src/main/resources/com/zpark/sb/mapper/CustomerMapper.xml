@@ -12,7 +12,7 @@
     <result column="applyNumber" property="applyNumber" jdbcType="VARCHAR" />
   </resultMap>
   <sql id="Base_Column_List" >
-    id, number, name, phone, address, type, remarks
+    id, number, name, phone, address, type, remarks, applyNumber
   </sql>
   <select id="selectById" resultMap="BaseResultMap" parameterType="java.lang.String" >
     select 
@@ -125,6 +125,9 @@
     </if>
     <if test="type != null and type != ''" >
       and type = #{type}
+    </if>
+    <if test="applyNumber != null and applyNumber != ''" >
+      and applyNumber = #{applyNumber}
     </if>
   </select>
 

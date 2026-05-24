@@ -1,259 +1,258 @@
 <template>
-  <div>
-    <div style="text-align: left; margin-left: 20px;">
-      <el-button class="filter-item" style="margin-left: 10px;" type="primary" @click="handleCreate()"> 发起申请</el-button>
-    </div>
-    <div style="display: flex; flex-direction: row; flex-wrap: wrap;">
-      <el-card class="box-card" v-for="item in tableData" :key="item.id" style="width: 450px; margin: 20px;">
+  <section class="work-page">
+    <PageHeader kicker="Asset Request" title="固定资产申请" description="发起固定资产采购或领用申请，并跟踪审批结果。">
+      <template #actions>
+        <el-button type="primary" @click="openCreate">发起申请</el-button>
+      </template>
+    </PageHeader>
+
+    <div v-if="tableData.length" class="request-grid">
+      <el-card v-for="item in tableData" :key="item.id" shadow="never" class="request-card">
         <template #header>
           <div class="card-header">
-            <span style="color: green; float: left;" v-if="item.isPass">{{ item.statusName }}</span>
-            <span style="color: gray; float: left;" v-else-if="item.isNotApproval">{{ item.statusName }}</span>
-            <span style="color: red; float: left;" v-else>{{ item.statusName }}</span>
-            <span>{{ ruleForm.employeeName }}提交的固定资产申请</span>
-            <el-button class="button" type="text" style="float: right; padding: 3px 0"
-              @click="handleUpdate(item)">查看详情</el-button>
+            <StatusTag :text="item.statusName" :status="item.status" :map="statusMap" />
+            <el-button type="primary" link @click="openDetail(item)">查看详情</el-button>
           </div>
         </template>
-        <div class="text item">
-          {{ '类型：' + item.typeName }}
-        </div>
-        <div class="text item">
-          {{ '申请时间：' + item.applyTime }}
-        </div>
+        <h3>{{ item.name || '固定资产申请' }}</h3>
+        <p>类型：{{ item.typeName || '-' }}</p>
+        <p>申请时间：{{ item.applyTime || '-' }}</p>
       </el-card>
     </div>
-    <el-dialog :title="dialogTitle" v-model="dialogFormVisible">
-      <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm"
-        style="width:100%;" v-if="isshowForm">
-        <el-form-item label="申请人" prop="employeeName">
-          <el-input v-model="ruleForm.employeeName" readonly></el-input>
-        </el-form-item>
-        <el-form-item label="申请时间" prop="applyTime" v-if="isUpdate">
-          <el-input v-model="ruleForm.applyTime" readonly></el-input>
-        </el-form-item>
-        <el-form-item label="编号" prop="number">
-          <el-input v-model="ruleForm.number" placeholder="请输入固定资产编号" :readonly="isUpdate"></el-input>
-        </el-form-item>
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="ruleForm.name" placeholder="请输入固定资产名称" :readonly="isUpdate"></el-input>
-        </el-form-item>
-        <el-form-item label="价格" prop="price">
-          <el-input v-model.number="ruleForm.price" placeholder="请输入固定资产价格" :readonly="isUpdate"></el-input>
-        </el-form-item>
-        <el-form-item label="类别" prop="typeID">
-          <el-select v-model="ruleForm.typeID" placeholder="请选择固定资产类别" :disabled="isUpdate" style="width: 100%;">
-            <el-option v-for="item in typeList" :key="item.id" :label="item.name" :value="item.id"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="审批人" prop="approvalName" v-if="isApproval">
-          <el-input v-model="ruleForm.approvalName" readonly></el-input>
-        </el-form-item>
-        <el-form-item label="审批时间" prop="approvalTime" v-if="isApproval">
-          <el-input v-model="ruleForm.approvalTime" readonly></el-input>
-        </el-form-item>
-        <el-form-item label="审批状态" prop="course" v-if="isUpdate">
-          <el-input v-model="ruleForm.statusName" :readonly="isUpdate"></el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-button @click="dialogFormVisible = false"> 取 消</el-button>
-          <el-button type="primary" @click="submitForm('ruleForm')" v-if="isCreate"> 立即申请</el-button>
-        </el-form-item>
+    <EmptyState v-else description="暂无固定资产申请" />
+
+    <FormDialog v-model="dialogVisible" :title="dialogTitle" width="680px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
+        <div class="form-grid">
+          <el-form-item label="申请人" prop="employeeName">
+            <el-input v-model="form.employeeName" readonly />
+          </el-form-item>
+          <el-form-item v-if="isUpdate" label="申请时间" prop="applyTime">
+            <el-input v-model="form.applyTime" readonly />
+          </el-form-item>
+          <el-form-item label="资产编号" prop="number">
+            <el-input v-model="form.number" :readonly="isUpdate" placeholder="请输入固定资产编号" />
+          </el-form-item>
+          <el-form-item label="资产名称" prop="name">
+            <el-input v-model="form.name" :readonly="isUpdate" placeholder="请输入固定资产名称" />
+          </el-form-item>
+          <el-form-item label="价格" prop="price">
+            <el-input v-model.number="form.price" :readonly="isUpdate" placeholder="请输入价格" />
+          </el-form-item>
+          <el-form-item label="资产类别" prop="typeID">
+            <el-select v-model="form.typeID" :disabled="isUpdate" placeholder="请选择固定资产类别">
+              <el-option v-for="item in typeList" :key="item.id" :label="item.name" :value="item.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item v-if="showApprovalInfo" label="审批人">
+            <el-input v-model="form.approvalName" readonly />
+          </el-form-item>
+          <el-form-item v-if="showApprovalInfo" label="审批时间">
+            <el-input v-model="form.approvalTime" readonly />
+          </el-form-item>
+          <el-form-item v-if="isUpdate" label="审批状态">
+            <el-input v-model="form.statusName" readonly />
+          </el-form-item>
+        </div>
       </el-form>
-    </el-dialog>
-  </div>
+
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button v-if="isCreate" type="primary" @click="submitForm">立即申请</el-button>
+      </template>
+    </FormDialog>
+  </section>
 </template>
 
-<script>
-import axios from '@/axios/axios'
+<script setup>
+import { computed, onMounted, reactive, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import PageHeader from '@/components/common/PageHeader.vue'
+import StatusTag from '@/components/common/StatusTag.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import FormDialog from '@/components/common/FormDialog.vue'
+import { createFixedAsset, findFixedAssetByEmployeeNumber, getFixedAssetTypeList } from '@/api/application'
+import { loadCurrentUser, useUser } from '@/stores/user'
 import { getLoginUsername } from '@/utils/auth'
 
-export default {
-  data() {
-    return {
-      tableData: [],
-      ruleForm: {
-        employeeNumber: getLoginUsername(),
-        employeeName: '',
-        number: '',
-        name: '',
-        typeID: '',
-        price: '',
-        applyTime: this.getTime(),
-        taskTypeID: '2',
-        status: '',
-        approvalID: '',
-      },
-      rules: {
-        number: [
-          { required: true, message: '请输入固定资产编号', trigger: 'blur' },
-          { min: 3, max: 15, message: '长度在 3 到 15 个字符', trigger: 'blur' }
-        ],
-        name: [
-          { required: true, message: '请输入固定资产名称', trigger: 'blur' },
-          { min: 3, max: 15, message: '长度在 3 到 15 个字符', trigger: 'blur' }
-        ],
-        typeID: [
-          { required: true, message: '请选择固定资产类别', trigger: 'change' }
-        ],
-        price: [
-          { required: true, message: '价格不能为空' },
-          { type: 'number', message: '价格必须为数字值' }
-        ],
-      },
-      form: {
-        id: '',
-        number: getLoginUsername(),
-        name: '',
-        sex: '',
-        birthday: '',
-        departmentID: '',
-        position: '',
-        type: '',
-        entryDate: '',
-        phone: '',
-        address: '',
-        password: '',
-        checkPass: '',
-      },
-      isshowForm: true,
-      isshowResult: false,
-      dialogFormVisible: false,
-      dialogTitle: '',
-      isPass: false,
-      isNotApproval: false,
-      isCreate: false,
-      isUpdate: false,
-      isApproval: false,
-      employeeName: '',
-      employeeNumber: '',
-      typeList: [],
-    };
-  },
-  created() {
-    this.getData();
-    this.getUsername();
-  },
-  methods: {
-    getData() {
-      axios.post('/fixedasset/findByEmployeeNumber', {
-        employeeNumber: getLoginUsername(),
-      }).then(res => {
-        this.tableData = res.data;
-        this.tableData.forEach(item => {
-          if (item.status == '0') {
-            item.statusName = '待审批'
-            item.isNotApproval = true
-          } else if (item.status == '1') {
-            item.statusName = '已通过'
-            item.isPass = true
-          } else if (item.status == '2') {
-            item.statusName = '已驳回'
-          } else if (item.status == '3') {
-            item.statusName = '已撤销'
-          }
-        })
-      })
-    },
-    submitForm(formName) {
-      this.$refs[formName].validate((valid) => {
-        if (valid) {
-          axios.post('/fixedasset/insert', this.ruleForm).then(res => {
-            if (res.data.code == 200) {
-              this.dialogFormVisible = false;
-              this.$message({ message: "申请成功", type: "success" });
-              this.$refs[formName].resetFields();
-              this.ruleForm.employeeName = this.employeeName;
-              this.ruleForm.applyTime = this.getTime();
-              this.dialogFormVisible = false;
-              this.getData();
-            } else if (res.data.code == 20005) {
-              this.$message({ message: "该编号已存在", type: "error" });
-            }
-          })
-        } else {
-          //console.log('error submit!!');
-          return false;
-        }
-      });
-    },
-    resetForm() {
-      this.$refs['ruleForm'].resetFields();
-      this.ruleForm.employeeName = this.employeeName;
-      this.ruleForm.applyTime = this.getTime();
-      this.employeeNumber = getLoginUsername();
-      this.taskTypeID = '2';
-    },
-    getUsername() {
-      axios.post('/employee/findByNumber', this.form).then(res => {
-        this.employeeName = res.data.name;
-        this.employeeNumber = res.data.number;
-        this.ruleForm.employeeName = res.data.name;
-        this.ruleForm.employeeNumber = res.data.number;
-      })
-    },
-    getTime() {
-      var date = new Date();
-      var seperator1 = "-";
-      var seperator2 = ":";
-      //以下代码依次是获取当前时间的年月日时分秒
-      var year = date.getFullYear();
-      var month = date.getMonth() + 1;
-      var strDate = date.getDate();
-      var minute = date.getMinutes();
-      var hour = date.getHours();
-      var second = date.getSeconds();
-      //固定时间格式
-      if (month >= 1 && month <= 9) {
-        month = "0" + month;
-      }
-      if (strDate >= 0 && strDate <= 9) {
-        strDate = "0" + strDate;
-      }
-      if (hour >= 0 && hour <= 9) {
-        hour = "0" + hour;
-      }
-      if (minute >= 0 && minute <= 9) {
-        minute = "0" + minute;
-      }
-      if (second >= 0 && second <= 9) {
-        second = "0" + second;
-      }
-      var currentdate = year + seperator1 + month + seperator1 + strDate
-        + " " + hour + seperator2 + minute + seperator2 + second;
-      return currentdate;
-    },
-    handleCreate() {
-      //this.resetForm(this.ruleForm)
-      //this.getTypeList()
-      //this.resetTemp()
-      this.getTypeList()
-      this.dialogTitle = "发送申请"
-      this.isCreate = true
-      this.isUpdate = false
-      this.isApproval = false
-      this.dialogFormVisible = true
-      this.resetForm()
-    },
-    handleUpdate(row) {
-      
-      this.ruleForm = Object.assign({}, row) // copy obj
-      this.ruleForm.employeeName = this.employeeName;
-      if (this.ruleForm.status == '0') {
-        this.isApproval = false
-      } else if (this.ruleForm.status == '1' || this.ruleForm.status == '2') {
-        this.isApproval = true
-      }
-      this.dialogTitle = "申请详情"
-      this.isUpdate = true
-      this.isCreate = false
-      this.dialogFormVisible = true
-    },
-    getTypeList() {
-      axios.get('/fixedassetType/list').then(res => {
-        this.typeList = res.data;
-      })
-    }
+const loginNumber = getLoginUsername() || ''
+const { name } = useUser()
+const tableData = ref([])
+const typeList = ref([])
+const dialogVisible = ref(false)
+const isCreate = ref(false)
+const isUpdate = ref(false)
+const formRef = ref()
+
+const statusMap = {
+  0: { type: 'warning' },
+  1: { type: 'success' },
+  2: { type: 'danger' },
+  3: { type: 'info' }
+}
+
+const form = reactive(createForm())
+const dialogTitle = computed(() => (isCreate.value ? '发起固定资产申请' : '申请详情'))
+const showApprovalInfo = computed(() => isUpdate.value && ['1', '2'].includes(String(form.status)))
+
+const rules = {
+  number: [
+    { required: true, message: '请输入固定资产编号', trigger: 'blur' },
+    { min: 3, max: 15, message: '长度需在 3 到 15 个字符之间', trigger: 'blur' }
+  ],
+  name: [
+    { required: true, message: '请输入固定资产名称', trigger: 'blur' },
+    { min: 2, max: 30, message: '长度需在 2 到 30 个字符之间', trigger: 'blur' }
+  ],
+  typeID: [{ required: true, message: '请选择固定资产类别', trigger: 'change' }],
+  price: [
+    { required: true, message: '价格不能为空', trigger: 'blur' },
+    { type: 'number', message: '价格必须为数字', trigger: 'blur' }
+  ]
+}
+
+function createForm() {
+  return {
+    employeeNumber: loginNumber,
+    employeeName: name.value,
+    number: '',
+    name: '',
+    typeID: '',
+    price: '',
+    applyTime: getCurrentDateTime(),
+    taskTypeID: '2',
+    status: '',
+    statusName: '',
+    approvalID: '',
+    approvalName: '',
+    approvalTime: ''
   }
 }
+
+function resetFormData(data = createForm()) {
+  Object.assign(form, data)
+}
+
+function statusText(status) {
+  const map = {
+    0: '待审批',
+    1: '已通过',
+    2: '已驳回',
+    3: '已撤销'
+  }
+  return map[String(status)] || '未知'
+}
+
+function getCurrentDateTime() {
+  const date = new Date()
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+async function loadData() {
+  try {
+    const data = await findFixedAssetByEmployeeNumber({ employeeNumber: loginNumber })
+    tableData.value = (Array.isArray(data) ? data : []).map((item) => ({
+      ...item,
+      statusName: statusText(item.status)
+    }))
+  } catch (error) {
+    ElMessage.error('获取固定资产申请失败')
+  }
+}
+
+async function loadTypes() {
+  try {
+    typeList.value = await getFixedAssetTypeList()
+  } catch (error) {
+    ElMessage.error('获取资产类别失败')
+  }
+}
+
+async function openCreate() {
+  await loadTypes()
+  resetFormData(createForm())
+  form.employeeName = name.value
+  form.employeeNumber = loginNumber
+  form.applyTime = getCurrentDateTime()
+  isCreate.value = true
+  isUpdate.value = false
+  dialogVisible.value = true
+}
+
+function openDetail(row) {
+  resetFormData({ ...createForm(), ...row, employeeName: row.employeeName || name.value, statusName: statusText(row.status) })
+  isCreate.value = false
+  isUpdate.value = true
+  dialogVisible.value = true
+}
+
+async function submitForm() {
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  try {
+    const data = await createFixedAsset({ ...form })
+    if (data?.code === 20005) {
+      ElMessage.error('该编号已存在')
+      return
+    }
+    ElMessage.success('申请成功')
+    dialogVisible.value = false
+    loadData()
+  } catch (error) {
+    ElMessage.error('申请失败，请稍后重试')
+  }
+}
+
+onMounted(async () => {
+  await loadCurrentUser()
+  loadData()
+})
 </script>
+
+<style scoped>
+.work-page {
+  display: grid;
+  gap: 16px;
+}
+
+.request-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.request-card h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.request-card p {
+  margin: 6px 0;
+  color: var(--am-text-soft);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+:deep(.el-select) {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

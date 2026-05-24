@@ -1,249 +1,213 @@
 <template>
-<div class="pro-container">
-  <div style="text-align: left;">
-    <div>
-	    <el-select v-model="form1.type" clearable placeholder="璇烽€夋嫨瀹㈡埛绫诲埆">
-            <el-option v-for="item in customerTypeList" :key="item.id" :label="item.value" :value="item.value"></el-option>
-        </el-select>
-	    <el-input v-model="form1.name" placeholder="璇疯緭鍏ュ悕绉?" style="width: 200px;" class="filter-item" @keyup.enter="onSubmit" clearable/>
-      <br>
-      <br>
-    </div>
-    <el-row>
-      <el-button class="filter-item" type="primary"  @click="onSubmit"> 鏌ヨ</el-button>  	 	
-      <el-button class="filter-item" style="margin-left: 10px;" type="primary"  @click="handleCreate"> 鏂板</el-button>
+  <section class="work-page">
+    <PageHeader kicker="Customer Desk" title="客户管理" description="维护客户档案，管理员可查看全部客户，普通员工查看本人客户。">
+      <template #actions>
+        <el-button type="primary" @click="openCreate">新增客户</el-button>
+      </template>
+    </PageHeader>
 
-    </el-row>
-    <div class="right-items">
-        <!-- <el-button class="filter-item" style="margin-left: 10px;" type="primary"  >淇?  鏀?/el-button>
-	    <el-button class="filter-item" style="margin-left: 10px;" type="primary"  >鍒? 闄?/el-button> -->
-    </div>
-  </div>
-  <div style="margin-top: 20px;">
-    <el-table :data="tableData" border fit highlight-current-row style="width: 100%">
-      <el-table-column prop="number" label="瀹㈡埛缂栧彿"></el-table-column>
-      <el-table-column prop="name" label="濮撳悕"></el-table-column>
-      <el-table-column prop="phone" label="鑱旂郴鏂瑰紡"></el-table-column>
-      <el-table-column prop="address" label="鍦板潃"></el-table-column>
-      <el-table-column prop="type" label="绫诲埆"></el-table-column>
-      <el-table-column prop="remarks" label="澶囨敞"></el-table-column>
-      <el-table-column label="鎿嶄綔" width="260" fixed="right">
-	      <template #default="scope">
-	        <el-button type="success" @click="handleUpdate(scope.row)"> 缂栬緫</el-button>
-	        <el-button type="danger" @click="handleDelete(scope.row)"> 鍒犻櫎</el-button>
-	      </template>
-	  </el-table-column>
-    </el-table>
-  </div>
-<el-dialog :title="dialogTitle" v-model="dialogFormVisible" >
-	<el-form ref="form" :rules="rules" :model="form" label-position="left" label-width="120px" style="width: 420px; margin-left:50px;">
-		<el-form-item label="缂栧彿" prop="number">
-		  <el-input v-model="form.number" placeholder="璇疯緭鍏ュ鎴风紪鍙穨"/>
-		</el-form-item>
-		<el-form-item label="濮撳悕鍚嶇О" prop="name">
-		  <el-input v-model="form.name" placeholder="璇疯緭鍏ュ鎴峰鍚嶆垨鍚嶇О~"/>
-		</el-form-item>
-        <el-form-item label="绫诲埆" prop="type">
-		  <el-select v-model="form.type" clearable placeholder="璇烽€夋嫨" style="width: 100%;">
-            <el-option v-for="item in customerTypeList" :key="item.id" :label="item.value" :value="item.value"></el-option>
-          </el-select>
-		</el-form-item>
-        <el-form-item label="鑱旂郴鏂瑰紡">
-		  <el-input v-model="form.phone" placeholder="璇疯緭鍏ヨ仈绯绘柟寮弤"/>
-		</el-form-item>
-        <el-form-item label="鍦板潃">
-		  <el-input v-model="form.address" placeholder="璇疯緭鍏ュ湴鍧€~"/>
-		</el-form-item>
-        <el-form-item label="澶囨敞">
-		  <el-input v-model="form.remarks" placeholder="璇疯緭鍏ュ娉▇"/>
-		</el-form-item>
-	</el-form>
-	<div slot="footer" class="dialog-footer">
-		<el-button @click="dialogFormVisible = false"> 鍙栨秷</el-button>
-		<el-button v-if="isCreate" type="primary" @click="createData()"> 鏂板</el-button>
-    <el-button v-if="isUpdate" type="primary" @click="updateData()"> 淇敼</el-button>
-	</div>
-</el-dialog>
-</div>
+    <DataToolbar>
+      <template #left>
+        <el-select v-model="query.type" clearable placeholder="客户类型">
+          <el-option v-for="item in customerTypeList" :key="item.id" :label="item.value" :value="item.value" />
+        </el-select>
+        <el-input v-model.trim="query.name" clearable placeholder="客户名称" @keyup.enter="searchData" />
+      </template>
+      <template #right>
+        <el-button type="primary" @click="searchData">查询</el-button>
+        <el-button @click="loadData">重置</el-button>
+      </template>
+    </DataToolbar>
+
+    <el-card shadow="never">
+      <el-table :data="tableData" border fit highlight-current-row>
+        <el-table-column prop="number" label="客户编号" width="130" />
+        <el-table-column prop="name" label="客户名称" min-width="150" />
+        <el-table-column prop="phone" label="联系电话" width="140" />
+        <el-table-column prop="address" label="地址" min-width="180" />
+        <el-table-column prop="type" label="类型" width="120" />
+        <el-table-column prop="remarks" label="备注" min-width="180" />
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" @click="openUpdate(row)">编辑</el-button>
+            <el-button type="danger" @click="deleteData(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <FormDialog v-model="dialogVisible" :title="dialogTitle" width="640px">
+      <el-form ref="formRef" :rules="rules" :model="form" label-position="top">
+        <div class="form-grid">
+          <el-form-item label="客户编号" prop="number">
+            <el-input v-model.trim="form.number" placeholder="请输入客户编号" />
+          </el-form-item>
+          <el-form-item label="客户名称" prop="name">
+            <el-input v-model.trim="form.name" placeholder="请输入客户名称" />
+          </el-form-item>
+          <el-form-item label="客户类型" prop="type">
+            <el-select v-model="form.type" clearable placeholder="请选择客户类型">
+              <el-option v-for="item in customerTypeList" :key="item.id" :label="item.value" :value="item.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="联系电话">
+            <el-input v-model.trim="form.phone" placeholder="请输入联系电话" />
+          </el-form-item>
+          <el-form-item label="地址">
+            <el-input v-model.trim="form.address" placeholder="请输入地址" />
+          </el-form-item>
+          <el-form-item label="备注">
+            <el-input v-model.trim="form.remarks" placeholder="请输入备注" />
+          </el-form-item>
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitData">{{ isCreate ? '新增' : '保存' }}</el-button>
+      </template>
+    </FormDialog>
+  </section>
 </template>
 
-<script>
-import axios from '@/axios/axios'
-import { getLoginUsername } from '@/utils/auth'
-  export default {
-    data() {
-      return {
-        tableData: [],
-        customerType:'',
-        customerTypeList:[
-            {
-                id: '1',
-                value: '涓汉',
-            },{
-                id: '2',
-                value: '鍏徃',
-            },
-        ],
-        dialogFormVisible: false,
-        dialogTitle:'',
-        form: {
-          id: '',
-          number: '',
-          name: '',
-          type: '',
-          phone: '',
-          address: '',
-          remarks: '',
-          applyNumber: '',
-        },
-        form1: {
-          id: '',
-          number: '',
-          name: '',
-          type: '',
-          phone: '',
-          address: '',
-          remarks: '',
-          applyNumber: '',
-        },
-        id: '',
-        isCreate: false,
-        isUpdate: false,
-        number: getLoginUsername(),
-        employeeType: '',
-        rules: {
-          number: [
-            { required: true, message: '瀹㈡埛缂栧彿涓嶈兘涓虹┖', trigger: 'blur' }
-          ],
-          name: [
-            { required: true, message: '瀹㈡埛鍚嶇О涓嶈兘涓虹┖', trigger: 'blur' }
-          ],
-          type: [
-            { required: true, message: '璇烽€夋嫨瀹㈡埛绫诲瀷', trigger: 'change' }
-          ],
-        }
-      }
-    },
-    created() {
-      this.getData();
-    },
-    methods: {
-      getData(){
-        axios.post("/employee/findByNumber",{
-          number: this.number,
-        }).then(res => {
-          if(res.data.type == "3"){
-            axios.get("/customer/list").then(res => {
-              this.tableData = res.data;
-            })
-          }else{
-            axios.post("/customer/findByApplyNumber",{
-              applyNumber: this.number,
-            }).then(res => {
-              this.tableData = res.data;
-            })
-          }
-        })
-      },
-      resetTemp() {
-	      this.form = {
-	        id: '',
-          number: '',
-          name: '',
-          type: '',
-          phone: '',
-          address: '',
-          remarks: '',
-	      }
-      },
-      resetForm() {
-        this.form = {
-          id: '',
-          number: '',
-          name: '',
-          type: '',
-          phone: '',
-          address: '',
-          remarks: '',
-          applyNumber: '',
-        }
-      },
-      handleCreate(){
-        //this.resetTemp()
-        this.dialogTitle = "娣诲姞瀹㈡埛"
-        this.isCreate = true
-        this.isUpdate = false
-        this.dialogFormVisible = true
-        this.resetForm()
-      },
-      handleUpdate(row){
-        //this.tempForm = this.$wtables.getSelectedRowData(this, "employeeList");
-        this.form = Object.assign({}, row) // copy obj
-        this.dialogTitle = "缂栬緫瀹㈡埛淇℃伅"
-        this.isUpdate = true
-        this.isCreate = false
-        this.dialogFormVisible = true
-      },
-      handleDelete(row){
-        if(row){
-          this.id = row.id
-        }
-        this.$confirm("确定删除？" + row.id, "提示", {
-          confirmButtonText: "纭畾",
-          cancelButtonText: "鍙栨秷",
-          type: "warning",
-        }).then(() => {
-            axios.post("/customer/deleteById", {
-                id: this.id,
-            }).then((res) => {
-                //if (res.data.code == 200) {
-                  this.$message({ message: "鍒犻櫎鎴愬姛", type: "success" });
-                  this.getData();
-                //}
-              });
-          });
-      },
-      onSubmit(){
-        axios.post('/customer/findByNameAndType',this.form1).then(res => {
-          this.tableData = res.data;
-        })
-      },
-      createData(){
-        this.$refs['form'].validate((valid) => {
-          if (valid) {
-            this.form.applyNumber = this.number;
-            axios.post('/customer/insert',this.form).then(res => {
-              if(res.data.code == 200){
-                this.dialogFormVisible = false;
-                this.$message({ message: "娣诲姞鎴愬姛", type: "success" });
-                this.getData();
-              }else if(res.data.code == 20005){
-                this.$message({ message: "璇ョ紪鍙峰凡瀛樺湪", type: "error" });
-              }
-            })
-          } else {
-            console.log('error submit!!');
-            return false;
-          }
-        });
-      },
-      updateData(){
-        axios.post('/customer/update',this.form).then(res => {
-          this.dialogFormVisible = false;
-          this.$message({ message: "淇敼鎴愬姛", type: "success" });
-          this.getData();
-        })
-      }
-    }
-  }
-</script>
-<style scoped>
-  .pro-container {
-    padding: 15px 32px;
-    margin: 4px 2px;
-  }
-  .fenye {
-	  margin-top: 10px;
-  }
-</style>
+<script setup>
+import { computed, onMounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import PageHeader from '@/components/common/PageHeader.vue'
+import DataToolbar from '@/components/common/DataToolbar.vue'
+import FormDialog from '@/components/common/FormDialog.vue'
+import { createCustomer, deleteCustomerById, findCustomerByApplyNumber, findCustomerByNameAndType, getCustomerList, updateCustomer } from '@/api/customer'
+import { loadCurrentUser, useUser } from '@/stores/user'
+import { getLoginUsername, USER_TYPE } from '@/utils/auth'
 
+const loginNumber = getLoginUsername() || ''
+const { type } = useUser()
+const tableData = ref([])
+const dialogVisible = ref(false)
+const isCreate = ref(false)
+const isAdmin = computed(() => type.value === USER_TYPE.ADMIN)
+const formRef = ref()
+
+const customerTypeList = [
+  { id: '1', value: '潜在客户' },
+  { id: '2', value: '合作客户' }
+]
+
+const query = reactive(createCustomerForm())
+const form = reactive(createCustomerForm())
+const dialogTitle = computed(() => (isCreate.value ? '新增客户' : '编辑客户'))
+
+const rules = {
+  number: [{ required: true, message: '请输入客户编号', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入客户名称', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择客户类型', trigger: 'change' }]
+}
+
+function createCustomerForm() {
+  return {
+    id: '',
+    number: '',
+    name: '',
+    type: '',
+    phone: '',
+    address: '',
+    remarks: '',
+    applyNumber: ''
+  }
+}
+
+function resetFormData(target, source = createCustomerForm()) {
+  Object.assign(target, source)
+}
+
+async function loadData() {
+  resetFormData(query)
+  try {
+    tableData.value = isAdmin.value ? await getCustomerList() : await findCustomerByApplyNumber(loginNumber)
+  } catch (error) {
+    ElMessage.error('获取客户列表失败')
+  }
+}
+
+async function searchData() {
+  try {
+    tableData.value = await findCustomerByNameAndType({ ...query })
+  } catch (error) {
+    ElMessage.error('查询客户失败')
+  }
+}
+
+function openCreate() {
+  resetFormData(form)
+  form.applyNumber = loginNumber
+  isCreate.value = true
+  dialogVisible.value = true
+}
+
+function openUpdate(row) {
+  resetFormData(form, { ...row })
+  isCreate.value = false
+  dialogVisible.value = true
+}
+
+async function submitData() {
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  try {
+    const data = isCreate.value ? await createCustomer({ ...form, applyNumber: loginNumber }) : await updateCustomer({ ...form })
+    if (data?.code === 20005) {
+      ElMessage.error('该客户编号已存在')
+      return
+    }
+    ElMessage.success(isCreate.value ? '新增成功' : '保存成功')
+    dialogVisible.value = false
+    loadData()
+  } catch (error) {
+    ElMessage.error(isCreate.value ? '新增失败' : '保存失败')
+  }
+}
+
+async function deleteData(row) {
+  await ElMessageBox.confirm(`确认删除客户 ${row.name || row.id}？`, '提示', {
+    confirmButtonText: '确认',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+  try {
+    await deleteCustomerById(row.id)
+    ElMessage.success('删除成功')
+    loadData()
+  } catch (error) {
+    ElMessage.error('删除失败')
+  }
+}
+
+onMounted(async () => {
+  await loadCurrentUser()
+  loadData()
+})
+</script>
+
+<style scoped>
+.work-page {
+  display: grid;
+  gap: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+:deep(.el-select),
+:deep(.el-input) {
+  min-width: 180px;
+}
+
+@media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

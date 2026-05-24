@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.zpark.sb.dao.EmployeeDao" >
   <resultMap id="BaseResultMap" type="com.zpark.sb.entity.Employee" >
@@ -253,7 +253,7 @@
   </select>
 
   <select id="getAge" resultType="com.zpark.sb.entity.Chart">
-    select '18-24宀? as type, count(*) as 'value',
+    select '18-24' as type, count(*) as value,
     format(count(*) /
     (select count(*) from employee),2) as percent
     from employee
@@ -262,7 +262,7 @@
 
     union
 
-    select '25-29宀? as type, count(*) as 'value',
+    select '25-29' as type, count(*) as value,
     format(count(*) /
     (select count(*) from employee),2) as percent
     from employee
@@ -271,7 +271,7 @@
 
     union
 
-    select '30-39宀? as type, count(*) as 'value',
+    select '30-39' as type, count(*) as value,
     format(count(*) /
     (select count(*) from employee),2) as percent
     from employee
@@ -280,7 +280,7 @@
 
     union
 
-    select '40-49宀? as type, count(*) as 'value',
+    select '40-49' as type, count(*) as value,
     format(count(*) /
     (select count(*) from employee),2) as percent
     from employee
@@ -289,7 +289,7 @@
 
     union
 
-    select '50宀佷互涓? as type, count(*) as 'value',
+    select '50+' as type, count(*) as value,
     format(count(*) /
     (select count(*) from employee),2) as percent
     from employee

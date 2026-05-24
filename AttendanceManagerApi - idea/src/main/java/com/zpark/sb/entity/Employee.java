@@ -1,5 +1,7 @@
 package com.zpark.sb.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Employee {
     private String id;
 
@@ -21,7 +23,11 @@ public class Employee {
 
     private String address;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String oldPassword;
 
     private String departmentName;
 
@@ -113,6 +119,14 @@ public class Employee {
 
     public void setPassword(String password) {
         this.password = password == null ? null : password.trim();
+    }
+
+    public String getOldPassword() {
+        return oldPassword;
+    }
+
+    public void setOldPassword(String oldPassword) {
+        this.oldPassword = oldPassword == null ? null : oldPassword.trim();
     }
 
     public String getBirthday() {

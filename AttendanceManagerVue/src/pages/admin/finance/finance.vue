@@ -1,335 +1,328 @@
 <template>
-  <div style="margin-left: -20px;">
-    <div style="margin: 0 0 -12px 40px;">
-      <el-tabs v-model="activeName">
-        <el-tab-pane label="固定资产" name="fixed">
-          <div style="margin-left: 20px;">
-            <div style="text-align: right;">
-              <el-button class="filter-item" type="primary" @click="createFixed()"> 购置固定资产</el-button>
-            </div>
-            <div style="margin-top: 10px;">
-              <el-table :data="fixedList" border fit highlight-current-row style="width: 100%">
-                <el-table-column prop="number" label="固定资产编号"></el-table-column>
-                <el-table-column prop="name" label="名称"></el-table-column>
-                <el-table-column prop="typeName" label="类别"></el-table-column>
-                <el-table-column prop="price" label="价格"></el-table-column>
-                <el-table-column label="操作" width="360" fixed="right">
-                  <template #default="scope1">
-                    <el-button type="success" @click="updateFixed(scope1.row)"> 查看详情</el-button>
-                    <el-button type="danger" @click="deleteFixed(scope1.row)"> 报废处理</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-          </div>
-        </el-tab-pane>
-        <el-tab-pane label="工资发放" name="check">
-          <div style="margin-left: 15px; margin-top: 20px;">
-            <div>
-              <div class="block">
-                <span class="demonstration">选择月份</span>
-                <el-date-picker v-model="checkMonth" type="month" placeholder="选择月"
-                  value-format="YYYY-MM"></el-date-picker>
+  <section class="admin-page">
+    <PageHeader kicker="Finance Desk" title="财务管理" description="管理固定资产购置、月度考勤汇总与工资条发放。">
+      <template #actions>
+        <el-date-picker v-model="checkMonth" type="month" value-format="YYYY-MM" placeholder="选择月份" />
+        <el-button type="primary" @click="loadCheckList">查询</el-button>
+      </template>
+    </PageHeader>
 
-              </div><br>
-              <div class="block">
-                <el-button type="primary" @click="getCheckList()"> 查询</el-button>
-                <el-button type="primary" v-print="'#check'"> 打印报表</el-button>
-                <el-button type="primary" @click="exportCheck()"> 导出报表</el-button>
-              </div>
-            </div>
-            <div style="margin-top: 10px;" id="check">
-              <el-table :data="checkList" border fit highlight-current-row style="width: 100%">
-                <el-table-column prop="employeeID" label="员工编号"></el-table-column>
-                <!-- <el-table-column prop="employeeName" label="员工姓名"></el-table-column> -->
-                <el-table-column prop="workDays" label="应出勤（天）"></el-table-column>
-                <el-table-column prop="checkDays" label="实际出勤（天）"></el-table-column>
-                <el-table-column prop="leaveDays" label="请假（天）"></el-table-column>
-                <el-table-column prop="lateDays" label="迟到（次）"></el-table-column>
-                <el-table-column prop="leaveEarlyDays" label="早退（次）"></el-table-column>
-                <el-table-column prop="leaveDays" label="缺勤（次）"></el-table-column>
-                <el-table-column label="操作" width="260" fixed="right">
-                  <template #default="scope2">
-                    <el-button type="success" @click="payOff(scope2.row)"> 发放工资条</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
-    </div>
-    <el-dialog :title="dialogTitle" v-model="dialogFormVisible">
-      <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm"
-        style="width:100%;">
-        <el-form-item label="申请人" prop="employeeName">
-          <el-input v-model="ruleForm.employeeName" readonly></el-input>
-        </el-form-item>
-        <el-form-item label="申请时间" prop="applyTime" v-if="isUpdate">
-          <el-input v-model="ruleForm.applyTime" readonly></el-input>
-        </el-form-item>
-        <el-form-item label="编号" prop="number">
-          <el-input v-model="ruleForm.number" placeholder="请输入固定资产编号" :readonly="isUpdate"></el-input>
-        </el-form-item>
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="ruleForm.name" placeholder="请输入固定资产名称" :readonly="isUpdate"></el-input>
-        </el-form-item>
-        <el-form-item label="价格" prop="price">
-          <el-input v-model.number="ruleForm.price" placeholder="请输入固定资产价格" :readonly="isUpdate"></el-input>
-        </el-form-item>
-        <el-form-item label="类别" prop="typeID">
-          <el-select v-model="ruleForm.typeID" placeholder="请选择固定资产类别" :disabled="isUpdate" style="width: 100%;">
-            <el-option v-for="item in fixedTypeList" :key="item.id" :label="item.name" :value="item.id"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="审批人" prop="approvalName" v-if="isApproval">
-          <el-input v-model="ruleForm.employeeName" readonly></el-input>
-        </el-form-item>
-        <el-form-item label="审批时间" prop="approvalTime" v-if="isApproval">
-          <el-input v-model="ruleForm.approvalTime" readonly></el-input>
-        </el-form-item>
-        <el-form-item label="审批状态" prop="course" v-if="isUpdate">
-          <el-input v-model="ruleForm.statusName" :readonly="isUpdate"></el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-button @click="dialogFormVisible = false"> 取 消</el-button>
-          <el-button type="primary" @click="insertFixed('ruleForm')" v-if="isCreate"> 立即购置</el-button>
-        </el-form-item>
+    <el-tabs v-model="activeName">
+      <el-tab-pane label="固定资产" name="fixed">
+        <DataToolbar>
+          <template #right>
+            <el-button type="primary" @click="openCreateFixed">购置固定资产</el-button>
+          </template>
+        </DataToolbar>
+
+        <el-card shadow="never">
+          <el-table :data="fixedList" border fit highlight-current-row>
+            <el-table-column prop="number" label="固定资产编号" min-width="150" />
+            <el-table-column prop="name" label="名称" min-width="150" />
+            <el-table-column prop="typeName" label="类别" width="130" />
+            <el-table-column prop="price" label="价格" width="120" />
+            <el-table-column label="操作" width="190" fixed="right">
+              <template #default="{ row }">
+                <el-button type="primary" @click="openFixedDetail(row)">详情</el-button>
+                <el-button type="danger" @click="retireFixed(row)">报废</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+
+      <el-tab-pane label="工资发放" name="salary">
+        <DataToolbar>
+          <template #left>
+            <el-tag effect="light">{{ checkMonth }}</el-tag>
+          </template>
+          <template #right>
+            <el-button type="primary" @click="loadCheckList">查询</el-button>
+            <el-button type="primary" @click="exportCheck">导出报表</el-button>
+          </template>
+        </DataToolbar>
+
+        <el-card shadow="never">
+          <el-table :data="checkList" border fit highlight-current-row>
+            <el-table-column prop="employeeID" label="员工编号" width="130" />
+            <el-table-column prop="workDays" label="应出勤（天）" />
+            <el-table-column prop="checkDays" label="实际出勤（天）" />
+            <el-table-column prop="leaveDays" label="请假（天）" />
+            <el-table-column prop="lateDays" label="迟到（次）" />
+            <el-table-column prop="leaveEarlyDays" label="早退（次）" />
+            <el-table-column label="操作" width="140" fixed="right">
+              <template #default="{ row }">
+                <el-button type="success" @click="payOff(row)">发放工资条</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+    </el-tabs>
+
+    <FormDialog v-model="dialogVisible" :title="dialogTitle" width="680px">
+      <el-form ref="formRef" :model="assetForm" :rules="rules" label-position="top">
+        <div class="form-grid">
+          <el-form-item label="申请人" prop="employeeName">
+            <el-input v-model="assetForm.employeeName" readonly />
+          </el-form-item>
+          <el-form-item v-if="isUpdate" label="申请时间" prop="applyTime">
+            <el-input v-model="assetForm.applyTime" readonly />
+          </el-form-item>
+          <el-form-item label="编号" prop="number">
+            <el-input v-model.trim="assetForm.number" :readonly="isUpdate" placeholder="请输入固定资产编号" />
+          </el-form-item>
+          <el-form-item label="名称" prop="name">
+            <el-input v-model.trim="assetForm.name" :readonly="isUpdate" placeholder="请输入固定资产名称" />
+          </el-form-item>
+          <el-form-item label="价格" prop="price">
+            <el-input v-model.number="assetForm.price" :readonly="isUpdate" placeholder="请输入固定资产价格" />
+          </el-form-item>
+          <el-form-item label="类别" prop="typeID">
+            <el-select v-model="assetForm.typeID" :disabled="isUpdate" placeholder="请选择固定资产类别">
+              <el-option v-for="item in fixedTypeList" :key="item.id" :label="item.name" :value="item.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item v-if="showApprovalInfo" label="审批人">
+            <el-input v-model="assetForm.approvalName" readonly />
+          </el-form-item>
+          <el-form-item v-if="showApprovalInfo" label="审批时间">
+            <el-input v-model="assetForm.approvalTime" readonly />
+          </el-form-item>
+          <el-form-item v-if="isUpdate" label="审批状态">
+            <el-input v-model="assetForm.statusName" readonly />
+          </el-form-item>
+        </div>
       </el-form>
-    </el-dialog>
-  </div>
+
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button v-if="isCreate" type="primary" @click="insertFixed">立即购置</el-button>
+      </template>
+    </FormDialog>
+  </section>
 </template>
-<script>
-import axios from '@/axios/axios'
+
+<script setup>
+import { computed, onMounted, reactive, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import PageHeader from '@/components/common/PageHeader.vue'
+import DataToolbar from '@/components/common/DataToolbar.vue'
+import FormDialog from '@/components/common/FormDialog.vue'
+import { createFixedAsset, exportCheckExcel, getCheckList, getFixedAssetList, getFixedAssetTypeList, paySalary } from '@/api/finance'
+import { loadCurrentUser, useUser } from '@/stores/user'
 import { getLoginUsername } from '@/utils/auth'
-export default {
-  data() {
-    return {
-      isFixed: false,
-      fixedList: [],
-      ruleForm: {
-        employeeNumber: getLoginUsername(),
-        employeeName: '',
-        number: '',
-        name: '',
-        typeID: '',
-        price: '',
-        applyTime: this.getTime(),
-        taskTypeID: '2',
-        status: '',
-        approvalID: '',
-      },
-      dialogTitle: "",
-      dialogFormVisible: false,
-      fixedTypeList: [],
-      isCreate: false,
-      isUpdate: false,
-      employeeName: '',
-      employeeNumber: '',
-      isApproval: false,
-      form: {
-        id: '',
-        number: getLoginUsername(),
-        name: '',
-        sex: '',
-        birthday: '',
-        departmentID: '',
-        position: '',
-        type: '',
-        entryDate: '',
-        phone: '',
-        address: '',
-        password: '',
-        checkPass: '',
-      },
-      checkList: [],
-      checkMonth: new Date(),
-      activeName: 'fixed',
-      rules: {
-        number: [
-          { required: true, message: '请输入固定资产编号', trigger: 'blur' },
-          { min: 3, max: 15, message: '长度在 3 到 15 个字符', trigger: 'blur' }
-        ],
-        name: [
-          { required: true, message: '请输入固定资产名称', trigger: 'blur' },
-          { min: 3, max: 15, message: '长度在 3 到 15 个字符', trigger: 'blur' }
-        ],
-        typeID: [
-          { required: true, message: '请选择固定资产类别', trigger: 'change' }
-        ],
-        price: [
-          { required: true, message: '价格不能为空' },
-          { type: 'number', message: '价格必须为数字值' }
-        ],
-      },
-    }
-  },
-  created() {
-    this.getUsername();
-    this.getFixedList();
-    this.getCheckList();
-    this.getTypeList();
-  },
-  methods: {
-    getFixedList() {
-      axios.get("/fixedasset/list").then(res => {
-        this.fixedList = res.data;
-      })
-    },
-    resetForm() {
-      this.$refs['ruleForm'].resetFields();
-      this.ruleForm.employeeName = this.employeeName;
-      this.ruleForm.applyTime = this.getTime();
-      this.employeeNumber = getLoginUsername();
-      this.taskTypeID = '2';
-    },
-    createFixed() {
-      //this.resetForm(this.ruleForm)
-      //this.getTypeList()
-      //this.resetTemp()
-      this.dialogTitle = "购置固定资产"
-      this.isCreate = true
-      this.isUpdate = false
-      this.isApproval = false
-      this.dialogFormVisible = true
-      this.resetForm()
-      this.getTypeList()
-    },
-    updateFixed(row) {
 
-      this.ruleForm = Object.assign({}, row) // copy obj
-      this.ruleForm.employeeName = this.employeeName;
-      if (this.ruleForm.status == '0') {
-        this.isApproval = false
-      } else if (this.ruleForm.status == '1' || this.ruleForm.status == '2') {
-        this.isApproval = true
-      }
-      this.dialogTitle = "资产详情"
-      this.isUpdate = true
-      this.isCreate = false
-      this.dialogFormVisible = true
-    },
-    // resetTemp() {
-    //   this.ruleForm = {
-    //     employeeNumber: getLoginUsername(),
-    //     employeeName: this.employeeName,
-    //     number:'',
-    //     name: '',
-    //     typeID: '',
-    //     price: '',
-    //     applyTime: this.getTime(),
-    //     taskTypeID: '2',
-    //     status: '',
-    //     approvalID: '',
-    //   }
-    // },
-    getUsername() {
-      axios.post('/employee/findByNumber', this.form).then(res => {
-        this.employeeName = res.data.name;
-        this.employeeNumber = res.data.number;
-        this.ruleForm.employeeName = res.data.name;
-        this.ruleForm.employeeNumber = res.data.number;
-      })
-    },
-    getTypeList() {
-      axios.get('/fixedassetType/list').then(res => {
-        this.fixedTypeList = res.data;
-      })
-    },
-    insertFixed(formName) {
-      this.$refs[formName].validate((valid) => {
-        if (valid) {
-          axios.post('/fixedasset/insert', this.ruleForm).then(res => {
-            if (res.data.code == 200) {
-              this.dialogFormVisible = false;
-              this.$message({ message: "购置成功", type: "success" });
-              this.$refs[formName].resetFields();
-              this.ruleForm.employeeName = this.employeeName;
-              this.ruleForm.applyTime = this.getTime();
-              this.dialogFormVisible = false;
-              this.getData();
-            } else if (res.data.code == 20005) {
-              this.$message({ message: "该编号已存在", type: "error" });
-            }
-          })
-        } else {
-          //console.log('error submit!!');
-          return false;
-        }
-      });
-    },
-    getTime() {
-      var date = new Date();
-      var seperator1 = "-";
-      var seperator2 = ":";
-      //以下代码依次是获取当前时间的年月日时分秒
-      var year = date.getFullYear();
-      var month = date.getMonth() + 1;
-      var strDate = date.getDate();
-      var minute = date.getMinutes();
-      var hour = date.getHours();
-      var second = date.getSeconds();
-      //固定时间格式
-      if (month >= 1 && month <= 9) {
-        month = "0" + month;
-      }
-      if (strDate >= 0 && strDate <= 9) {
-        strDate = "0" + strDate;
-      }
-      if (hour >= 0 && hour <= 9) {
-        hour = "0" + hour;
-      }
-      if (minute >= 0 && minute <= 9) {
-        minute = "0" + minute;
-      }
-      if (second >= 0 && second <= 9) {
-        second = "0" + second;
-      }
-      var currentdate = year + seperator1 + month + seperator1 + strDate
-        + " " + hour + seperator2 + minute + seperator2 + second;
-      return currentdate;
-    },
-    deleteFixed() {
+const loginNumber = getLoginUsername() || ''
+const { name } = useUser()
+const activeName = ref('fixed')
+const fixedList = ref([])
+const checkList = ref([])
+const fixedTypeList = ref([])
+const checkMonth = ref(getMonthText(new Date()))
+const dialogVisible = ref(false)
+const isCreate = ref(false)
+const isUpdate = ref(false)
+const formRef = ref()
+const assetForm = reactive(createAssetForm())
 
-    },
-    getCheckList() {
-      axios.post('/check/getCheckList', {
-        date: this.checkMonth,
-        month: this.checkMonth,
-      }).then(res => {
-        this.checkList = res.data;
-      })
-    },
-    payOff(row) {
-      row.month = this.checkMonth;
-      // 创建一个表示当前日期的 Date 对象
-      let currentDate = new Date();
-      // 创建一个表示给定日期的 Date 对象
-      let givenDate = new Date(row.month);
-      // 比较月份
-      if (currentDate.getFullYear() === givenDate.getFullYear() && currentDate.getMonth() === givenDate.getMonth()) {
+const dialogTitle = computed(() => (isCreate.value ? '购置固定资产' : '资产详情'))
+const showApprovalInfo = computed(() => isUpdate.value && ['1', '2'].includes(String(assetForm.status)))
 
-        this.$message({ message: "无法发放当月工资条", type: "error" });
-        return
-      }
-      axios.post('/salary/payOff', row).then(res => {
-        if (res.data.code == 200) {
-          this.$message({ message: "发放成功", type: "success" });
-        } else if (res.data.code == 50003) {
-          this.$message({ message: "请勿重复发放", type: "error" });
-        }
-        this.getCheckList();
-      })
-    },
-    exportCheck() {
-      // 获取年、月和日
-      let date = new Date(this.checkMonth);
-      let year = date.getFullYear();
-      let month = (date.getMonth() + 1).toString().padStart(2, '0'); // 月份从 0 开始，需要加 1，并且月份不足两位要补零
-      let day = date.getDate().toString().padStart(2, '0'); // 日不足两位要补零
-
-      window.open('http://localhost:9331/check/exportExcel?month=' + `${year}-${month}-${day}`)
-    }
-  },
+const rules = {
+  number: [
+    { required: true, message: '请输入固定资产编号', trigger: 'blur' },
+    { min: 3, max: 15, message: '长度需在 3 到 15 个字符之间', trigger: 'blur' }
+  ],
+  name: [
+    { required: true, message: '请输入固定资产名称', trigger: 'blur' },
+    { min: 2, max: 30, message: '长度需在 2 到 30 个字符之间', trigger: 'blur' }
+  ],
+  typeID: [{ required: true, message: '请选择固定资产类别', trigger: 'change' }],
+  price: [
+    { required: true, message: '价格不能为空', trigger: 'blur' },
+    { type: 'number', message: '价格必须为数字', trigger: 'blur' }
+  ]
 }
+
+function getMonthText(date) {
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`
+}
+
+function getCurrentDateTime() {
+  const date = new Date()
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+function createAssetForm() {
+  return {
+    employeeNumber: loginNumber,
+    employeeName: name.value,
+    number: '',
+    name: '',
+    typeID: '',
+    price: '',
+    applyTime: getCurrentDateTime(),
+    taskTypeID: '2',
+    status: '',
+    statusName: '',
+    approvalID: '',
+    approvalName: '',
+    approvalTime: ''
+  }
+}
+
+function resetAssetForm(data = createAssetForm()) {
+  Object.assign(assetForm, data)
+}
+
+function statusText(status) {
+  const map = {
+    0: '待审批',
+    1: '已通过',
+    2: '已驳回',
+    3: '已撤销'
+  }
+  return map[String(status)] || '未知'
+}
+
+async function loadFixedList() {
+  try {
+    fixedList.value = await getFixedAssetList()
+  } catch (error) {
+    ElMessage.error('获取固定资产列表失败')
+  }
+}
+
+async function loadTypeList() {
+  try {
+    fixedTypeList.value = await getFixedAssetTypeList()
+  } catch (error) {
+    ElMessage.error('获取固定资产类别失败')
+  }
+}
+
+async function loadCheckList() {
+  try {
+    checkList.value = await getCheckList({
+      date: checkMonth.value,
+      month: checkMonth.value
+    })
+  } catch (error) {
+    ElMessage.error('获取考勤汇总失败')
+  }
+}
+
+async function openCreateFixed() {
+  await loadTypeList()
+  resetAssetForm(createAssetForm())
+  assetForm.employeeName = name.value
+  assetForm.employeeNumber = loginNumber
+  assetForm.applyTime = getCurrentDateTime()
+  isCreate.value = true
+  isUpdate.value = false
+  dialogVisible.value = true
+}
+
+function openFixedDetail(row) {
+  resetAssetForm({ ...createAssetForm(), ...row, employeeName: row.employeeName || name.value, statusName: statusText(row.status) })
+  isCreate.value = false
+  isUpdate.value = true
+  dialogVisible.value = true
+}
+
+async function insertFixed() {
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  try {
+    const data = await createFixedAsset({ ...assetForm })
+    if (data?.code === 20005) {
+      ElMessage.error('该编号已存在')
+      return
+    }
+    ElMessage.success('购置成功')
+    dialogVisible.value = false
+    loadFixedList()
+  } catch (error) {
+    ElMessage.error('购置失败')
+  }
+}
+
+function retireFixed() {
+  ElMessage.warning('报废处理接口暂未开放')
+}
+
+async function payOff(row) {
+  const now = new Date()
+  const target = new Date(checkMonth.value)
+  if (now.getFullYear() === target.getFullYear() && now.getMonth() === target.getMonth()) {
+    ElMessage.error('无法发放当月工资条')
+    return
+  }
+
+  try {
+    const data = await paySalary({ ...row, month: checkMonth.value })
+    if (data?.code === 200) {
+      ElMessage.success('发放成功')
+    } else if (data?.code === 50003) {
+      ElMessage.error('请勿重复发放')
+    } else {
+      ElMessage.error(data?.message || '发放失败')
+    }
+    loadCheckList()
+  } catch (error) {
+    ElMessage.error('发放失败')
+  }
+}
+
+async function exportCheck() {
+  try {
+    const blob = await exportCheckExcel({ month: `${checkMonth.value}-01` })
+    const url = window.URL.createObjectURL(new Blob([blob], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `员工考勤表${checkMonth.value}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    ElMessage.error('导出失败')
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([loadCurrentUser(), loadFixedList(), loadTypeList()])
+  loadCheckList()
+})
 </script>
+
+<style scoped>
+.admin-page {
+  display: grid;
+  gap: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+:deep(.el-select),
+:deep(.el-date-editor.el-input),
+:deep(.el-input) {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

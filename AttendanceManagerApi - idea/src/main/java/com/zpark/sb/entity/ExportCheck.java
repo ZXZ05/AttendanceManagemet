@@ -1,9 +1,8 @@
 package com.zpark.sb.entity;
 
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.alibaba.excel.metadata.BaseRowModel;
 
-public class ExportCheck extends BaseRowModel {
+public class ExportCheck {
 
     @ExcelProperty(value = "员工编号", index = 0)
     private String employeeID;

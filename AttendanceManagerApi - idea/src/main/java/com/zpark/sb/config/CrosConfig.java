@@ -1,18 +1,18 @@
 package com.zpark.sb.config;
 
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class CrosConfig implements WebMvcConfigurer {
+
+    private final AuthInterceptor authInterceptor;
+
+    public CrosConfig(AuthInterceptor authInterceptor) {
+        this.authInterceptor = authInterceptor;
+    }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -22,5 +22,16 @@ public class CrosConfig implements WebMvcConfigurer {
                 .allowCredentials(true)
                 .allowedHeaders("*")
                 .maxAge(3600);
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(authInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns(
+                        "/login/login",
+                        "/login/register",
+                        "/error"
+                );
     }
 }

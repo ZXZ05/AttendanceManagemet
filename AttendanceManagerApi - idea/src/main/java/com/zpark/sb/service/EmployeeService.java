@@ -3,6 +3,7 @@ package com.zpark.sb.service;
 import com.zpark.sb.dao.EmployeeDao;
 import com.zpark.sb.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +20,8 @@ public class EmployeeService {
     private EmployeeTypeService employeeTypeService;
     @Autowired
     private PositionService positionService;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public int deleteById(String id) {
         Employee employee = employeeDao.selectById(id);
@@ -72,7 +75,7 @@ public class EmployeeService {
                 employee.setEmployeeType(position.getTypeID());
             }
             employee.setId(UUID.randomUUID().toString());
-            employee.setPassword("123456");
+            employee.setPassword(encodePassword("123456"));
             employee.setWorkStatus("0");
             employeeDao.insert(employee);
             syncDepartment(employee);
@@ -95,7 +98,7 @@ public class EmployeeService {
                         : employee.getName()
         );
         registerEmployee.setPhone(employee.getPhone());
-        registerEmployee.setPassword(employee.getPassword());
+        registerEmployee.setPassword(encodePassword(employee.getPassword()));
         registerEmployee.setWorkStatus("0");
         // default normal employee type
         registerEmployee.setEmployeeType("4");
@@ -109,6 +112,39 @@ public class EmployeeService {
         employeeDao.insert(registerEmployee);
         syncDepartment(registerEmployee);
         return 0;
+    }
+
+    public String encodePassword(String rawPassword) {
+        return passwordEncoder.encode(rawPassword);
+    }
+
+    public boolean verifyPassword(String rawPassword, String storedPassword) {
+        if (rawPassword == null || storedPassword == null) {
+            return false;
+        }
+        if (isBcryptPassword(storedPassword)) {
+            return passwordEncoder.matches(rawPassword, storedPassword);
+        }
+        return rawPassword.equals(storedPassword);
+    }
+
+    public void upgradePasswordIfNeeded(Employee employee, String rawPassword) {
+        if (employee == null || rawPassword == null) {
+            return;
+        }
+        if (!isBcryptPassword(employee.getPassword())) {
+            employee.setPassword(encodePassword(rawPassword));
+            employeeDao.update(employee);
+        }
+    }
+
+    private boolean isBcryptPassword(String password) {
+        if (password == null) {
+            return false;
+        }
+        return password.startsWith("$2a$")
+                || password.startsWith("$2b$")
+                || password.startsWith("$2y$");
     }
 
     public Employee selectById(String id) {

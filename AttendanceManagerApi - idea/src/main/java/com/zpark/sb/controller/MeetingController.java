@@ -3,7 +3,9 @@ package com.zpark.sb.controller;
 import com.zpark.sb.config.Result;
 import com.zpark.sb.config.ResultCode;
 import com.zpark.sb.entity.Meeting;
+import com.zpark.sb.service.AuthContextService;
 import com.zpark.sb.service.MeetingService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +18,8 @@ public class MeetingController {
 
     @Autowired
     private MeetingService meetingService;
+    @Autowired
+    private AuthContextService authContextService;
 
     @ResponseBody
     @RequestMapping(value = "/list", method = RequestMethod.GET)
@@ -25,7 +29,11 @@ public class MeetingController {
 
     @ResponseBody
     @RequestMapping(value = "/insert", method = RequestMethod.POST)
-    public Result insert(@RequestBody Meeting meeting) {
+    public Result insert(@RequestBody Meeting meeting, HttpServletRequest request) {
+        if (!authContextService.isAdmin(request)) {
+            return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
+        }
+        meeting.setPublisherNumber(authContextService.getCurrentUserNumber(request));
         int size = meetingService.insert(meeting);
         if (size == 1) {
             return Result.failure(ResultCode.USER_HAS_EXISTED);
@@ -36,13 +44,19 @@ public class MeetingController {
 
     @ResponseBody
     @RequestMapping(value = "/update", method = RequestMethod.POST)
-    public int update(@RequestBody Meeting meeting) {
+    public int update(@RequestBody Meeting meeting, HttpServletRequest request) {
+        if (!authContextService.isAdmin(request)) {
+            return 403;
+        }
         return meetingService.update(meeting);
     }
 
     @ResponseBody
     @RequestMapping(value = "/deleteById", method = RequestMethod.POST)
-    public int deleteById(@RequestBody Meeting meeting) {
+    public int deleteById(@RequestBody Meeting meeting, HttpServletRequest request) {
+        if (!authContextService.isAdmin(request)) {
+            return 403;
+        }
         return meetingService.deleteById(meeting.getId());
     }
 

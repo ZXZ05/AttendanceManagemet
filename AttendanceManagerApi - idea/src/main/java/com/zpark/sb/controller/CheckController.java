@@ -1,17 +1,17 @@
 package com.zpark.sb.controller;
 
-import com.alibaba.excel.ExcelWriter;
-import com.alibaba.excel.metadata.Sheet;
-import com.alibaba.excel.support.ExcelTypeEnum;
+import com.alibaba.excel.EasyExcel;
 import com.zpark.sb.entity.Check;
 import com.zpark.sb.entity.Employee;
 import com.zpark.sb.entity.ExportCheck;
+import com.zpark.sb.service.AuthContextService;
 import com.zpark.sb.service.CheckService;
 import com.zpark.sb.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -29,46 +29,62 @@ public class CheckController {
     private CheckService checkService;
     @Autowired
     private EmployeeService employeeService;
+    @Autowired
+    private AuthContextService authContextService;
 
     @ResponseBody
     @RequestMapping(value = "/checkOn", method = RequestMethod.POST)
-    public int checkOn(@RequestBody Check check) throws ParseException {
+    public int checkOn(@RequestBody Check check, HttpServletRequest request) throws ParseException {
+        check.setEmployeeID(authContextService.getCurrentUserNumber(request));
         return checkService.checkOn(check);
     }
 
     @ResponseBody
     @RequestMapping(value = "/checkOff", method = RequestMethod.POST)
-    public int checkOff(@RequestBody Check check) throws ParseException {
+    public int checkOff(@RequestBody Check check, HttpServletRequest request) throws ParseException {
+        check.setEmployeeID(authContextService.getCurrentUserNumber(request));
         return checkService.checkOff(check);
     }
 
     @ResponseBody
     @RequestMapping(value = "/getCheckOn", method = RequestMethod.POST)
-    public int getCheckOn(@RequestBody Check check) {
+    public int getCheckOn(@RequestBody Check check, HttpServletRequest request) {
+        check.setEmployeeID(authContextService.getCurrentUserNumber(request));
         return checkService.getCheckOn(check);
     }
 
     @ResponseBody
     @RequestMapping(value = "/getCheckOff", method = RequestMethod.POST)
-    public int getCheckOff(@RequestBody Check check) {
+    public int getCheckOff(@RequestBody Check check, HttpServletRequest request) {
+        check.setEmployeeID(authContextService.getCurrentUserNumber(request));
         return checkService.getCheckOff(check);
     }
 
     @ResponseBody
     @RequestMapping(value = "/findByNumber", method = RequestMethod.POST)
-    public List<Check> findByNumber(@RequestBody Check check) {
+    public List<Check> findByNumber(@RequestBody Check check, HttpServletRequest request) {
+        if (!authContextService.isAdmin(request)) {
+            check.setEmployeeID(authContextService.getCurrentUserNumber(request));
+        }
         return checkService.findByNumber(check.getEmployeeID());
     }
 
     @ResponseBody
     @RequestMapping(value = "/findByMonth", method = RequestMethod.POST)
-    public List<Check> findByMonth(@RequestBody Check check) {
+    public List<Check> findByMonth(@RequestBody Check check, HttpServletRequest request) {
+        if (!authContextService.isAdmin(request)) {
+            check.setEmployeeID(authContextService.getCurrentUserNumber(request));
+            return checkService.findByNumberAndMonth(check);
+        }
         return checkService.findByMonth(check.getMonth());
     }
 
     @ResponseBody
     @RequestMapping(value = "/findByNumberAndMonth", method = RequestMethod.POST)
-    public List<Check> findByNumberAndMonth(@RequestBody Check check) {
+    public List<Check> findByNumberAndMonth(@RequestBody Check check, HttpServletRequest request) {
+        if (!authContextService.isAdmin(request)) {
+            check.setEmployeeID(authContextService.getCurrentUserNumber(request));
+        }
         return checkService.findByNumberAndMonth(check);
     }
 
@@ -80,7 +96,10 @@ public class CheckController {
 
     @ResponseBody
     @RequestMapping(value = "/getCheckInfo", method = RequestMethod.POST)
-    public Check getCheckInfo(@RequestBody Check check) {
+    public Check getCheckInfo(@RequestBody Check check, HttpServletRequest request) {
+        if (!authContextService.isAdmin(request)) {
+            check.setEmployeeID(authContextService.getCurrentUserNumber(request));
+        }
         Check check1 = new Check();
         check1.setCheckDays(checkService.getCheckDayNumber(check));
         check1.setWorkDays(checkService.getWorkDay(check.getMonth()));
@@ -97,10 +116,14 @@ public class CheckController {
 
     @ResponseBody
     @RequestMapping(value = "/getCheckList", method = RequestMethod.POST)
-    public List<Check> getCheckList(@RequestBody Check check) {
+    public List<Check> getCheckList(@RequestBody Check check, HttpServletRequest request) {
         List<Check> checkList = new ArrayList<>();
         List<Employee> employeeList = employeeService.getAll();
         for (Employee item : employeeList) {
+            if (!authContextService.isAdmin(request)
+                    && !item.getNumber().equals(authContextService.getCurrentUserNumber(request))) {
+                continue;
+            }
             Check check1 = new Check();
             Check check2 = new Check();
             check2.setEmployeeID(item.getNumber());
@@ -119,11 +142,15 @@ public class CheckController {
     }
 
     @RequestMapping(value = "/exportExcel", method = RequestMethod.GET)
-    public void export(HttpServletResponse response, @RequestParam String month) throws IOException {
+    public void export(HttpServletResponse response, @RequestParam String month, HttpServletRequest request) throws IOException {
+        if (!authContextService.isAdmin(request)) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
         Check check = new Check();
         check.setDate(month);
         check.setMonth(month);
-        List<Check> checkList = getCheckList(check);
+        List<Check> checkList = getCheckList(check, request);
         List<ExportCheck> exportCheckList = new ArrayList<>();
         for (Check item : checkList) {
             ExportCheck exportCheck = new ExportCheck();
@@ -145,12 +172,9 @@ public class CheckController {
                 "attachment;filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()) + ".xlsx");
 
         ServletOutputStream out = response.getOutputStream();
-        ExcelWriter writer = new ExcelWriter(out, ExcelTypeEnum.XLSX, true);
-        Sheet sheet = new Sheet(1, 0, ExportCheck.class);
-        sheet.setAutoWidth(Boolean.TRUE);
-        sheet.setSheetName("员工考勤表" + titleMonth);
-        writer.write(exportCheckList, sheet);
-        writer.finish();
+        EasyExcel.write(out, ExportCheck.class)
+                .sheet("员工考勤表" + titleMonth)
+                .doWrite(exportCheckList);
         out.flush();
     }
 }

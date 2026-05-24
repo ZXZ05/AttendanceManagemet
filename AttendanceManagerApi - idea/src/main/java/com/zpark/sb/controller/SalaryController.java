@@ -4,7 +4,9 @@ import com.zpark.sb.config.Result;
 import com.zpark.sb.config.ResultCode;
 import com.zpark.sb.entity.Check;
 import com.zpark.sb.entity.Salary;
+import com.zpark.sb.service.AuthContextService;
 import com.zpark.sb.service.SalaryService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,10 +17,15 @@ public class SalaryController {
 
     @Autowired
     private SalaryService salaryService;
+    @Autowired
+    private AuthContextService authContextService;
 
     @ResponseBody
     @RequestMapping(value = "/payOff",method = RequestMethod.POST)
-    public Result payOff(@RequestBody Check check) {
+    public Result payOff(@RequestBody Check check, HttpServletRequest request) {
+        if (!authContextService.isAdmin(request)) {
+            return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
+        }
         int size = salaryService.payOff(check);
         if(size == 0){
             return Result.success();
@@ -31,7 +38,10 @@ public class SalaryController {
 
     @ResponseBody
     @RequestMapping(value = "/findByNumberAndMonth",method = RequestMethod.POST)
-    public Salary findByNumberAndMonth(@RequestBody Check check) {
+    public Salary findByNumberAndMonth(@RequestBody Check check, HttpServletRequest request) {
+        if (!authContextService.isAdmin(request)) {
+            check.setEmployeeID(authContextService.getCurrentUserNumber(request));
+        }
         return salaryService.findByNumberAndMonth(check);
     }
 }

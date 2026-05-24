@@ -1,157 +1,246 @@
-<template>
-  <div class="login">
-    <el-card class="login-form-layout">
-      <el-row :gutter="16">
-        <el-col :span="8" style="text-align: right;">
-          <img
-            src="@/assets/01.png"
-            style="
-              width: 60px;
-              height: 60px;
-              margin: 5px 5px 0 0;
-              -webkit-user-drag: none;
-              -khtml-user-drag: none;
-              -moz-user-drag: none;
-              user-drag: none;
-            "
-          />
-        </el-col>
-        <el-col :span="16" style="font-size: 32px; text-align: left; margin: 15px 0 0 0; color: black;">
-          <b class="login-title">考勤管理系统</b>
-        </el-col>
-      </el-row>
-      <br />
+﻿<template>
+  <main class="auth-page login-page">
+    <section class="auth-hero am-panel">
+      <img src="@/assets/01.png" alt="Attendance Manager" class="hero-logo" />
+      <p class="eyebrow">Attendance Manager</p>
+      <h1>让考勤、审批与协作更高效</h1>
+      <p class="hero-copy">
+        一体化员工协同平台，覆盖考勤打卡、请假审批、会议通知和管理分析。
+      </p>
+      <div class="hero-metrics">
+        <MetricCard label="实时" value="考勤状态" hint="签到签退一屏掌握" />
+        <MetricCard label="统一" value="业务入口" hint="工作台与管理台联动" />
+        <MetricCard label="安全" value="权限控制" hint="基于角色保护数据" />
+      </div>
+    </section>
 
-      <el-form ref="formRef" :model="form" :rules="rules">
-        <el-row :gutter="16">
-          <el-col :span="3" style="padding-top: 12px;">
-            <i class="iconfont icon-r-user2" style="font-size: 28px; color: grey;"></i>
-          </el-col>
-          <el-col
-            :span="21"
-            style="font-size: 24px; font-weight: 600; text-align: left; margin: 7px 0 0 0; color: rgb(64, 64, 64);"
-          >
-            <el-form-item prop="number">
-              <el-input v-model="form.number" clearable placeholder="请输入账号"></el-input>
-            </el-form-item>
-          </el-col>
-        </el-row>
+    <section class="auth-form am-panel">
+      <div>
+        <p class="eyebrow">Secure Login</p>
+        <h2>欢迎回来</h2>
+        <p class="desc">请输入员工账号和密码登录系统。</p>
+      </div>
 
-        <el-row :gutter="16">
-          <el-col :span="3" style="padding-top: 12px;">
-            <i class="iconfont icon-r-lock" style="font-size: 28px; color: grey;"></i>
-          </el-col>
-          <el-col
-            :span="21"
-            style="font-size: 24px; font-weight: 600; text-align: left; margin: 7px 0 0 0; color: rgb(64, 64, 64);"
-          >
-            <el-form-item prop="password">
-              <el-input v-model="form.password" show-password placeholder="请输入密码"></el-input>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <br />
-        <el-form-item>
-          <el-button type="primary" :loading="loading" @click="onSubmit">登录</el-button>
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @keyup.enter="onSubmit">
+        <el-form-item label="账号" prop="number">
+          <el-input v-model.trim="form.number" clearable placeholder="请输入账号">
+            <template #prefix>
+              <el-icon><User /></el-icon>
+            </template>
+          </el-input>
         </el-form-item>
-        <el-link type="primary" @click="goTo('/register')">还没有账号？去注册</el-link>
+
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="form.password" type="password" show-password placeholder="请输入密码">
+            <template #prefix>
+              <el-icon><Lock /></el-icon>
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-alert
+          v-if="loginError"
+          :title="loginError"
+          type="error"
+          show-icon
+          :closable="false"
+          class="error-alert"
+        />
+
+        <el-button class="submit-btn" type="primary" :loading="loading" @click="onSubmit">
+          登录系统
+          <el-icon><ArrowRight /></el-icon>
+        </el-button>
       </el-form>
-    </el-card>
-  </div>
+
+      <div class="footer-tip">
+        <span>还没有账号？</span>
+        <el-link type="primary" :underline="false" @click="router.push('/register')">立即注册</el-link>
+      </div>
+    </section>
+  </main>
 </template>
 
-<script>
-import axios from '@/axios/axios'
+<script setup>
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ArrowRight, Lock, User } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import MetricCard from '@/components/common/MetricCard.vue'
+import { login } from '@/api/auth'
 import { setLoginSession } from '@/utils/auth'
 
-export default {
-  name: 'LoginPage',
-  data() {
-    return {
-      form: {
-        number: '',
-        password: ''
-      },
-      loading: false,
-      rules: {
-        number: [{ required: true, message: '请输入账号', trigger: 'blur' }],
-        password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
-      }
+const router = useRouter()
+const formRef = ref()
+const loading = ref(false)
+const loginError = ref('')
+
+const form = reactive({
+  number: '',
+  password: ''
+})
+
+const rules = {
+  number: [
+    { required: true, message: '请输入账号', trigger: 'blur' },
+    { min: 4, max: 20, message: '账号长度需在 4 到 20 个字符之间', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, max: 32, message: '密码长度需在 6 到 32 个字符之间', trigger: 'blur' }
+  ]
+}
+
+const LOGIN_MESSAGES = {
+  20004: '账号不存在，请确认后重试',
+  20002: '密码错误，请重新输入',
+  10002: '账号和密码不能为空'
+}
+
+function getErrorMessage(error) {
+  return error?.response?.data?.message || error?.response?.data || error?.message || '登录请求失败，请稍后重试'
+}
+
+async function onSubmit() {
+  if (loading.value) {
+    return
+  }
+
+  loginError.value = ''
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) {
+    return
+  }
+
+  loading.value = true
+  try {
+    const data = await login({ number: form.number, password: form.password })
+    if (data?.code !== 200) {
+      loginError.value = LOGIN_MESSAGES[data?.code] || data?.message || '登录失败，请稍后重试'
+      ElMessage.error(loginError.value)
+      return
     }
-  },
-  methods: {
-    onSubmit() {
-      this.$refs.formRef.validate((valid) => {
-        if (!valid) {
-          return
-        }
-        this.loading = true
-        axios
-          .post('/login/login', this.form)
-          .then((res) => {
-            if (res.data.code === 200) {
-              setLoginSession(this.form.number)
-              this.$message({ message: '登录成功', type: 'success' })
-              this.$router.push('/home')
-              return
-            }
-            if (res.data.code === 20004) {
-              this.$message({ message: '账号不存在', type: 'error' })
-              return
-            }
-            if (res.data.code === 20002) {
-              this.$message({ message: '密码错误', type: 'error' })
-              return
-            }
-            if (res.data.code === 10002) {
-              this.$message({ message: '账号和密码不能为空', type: 'error' })
-              return
-            }
-            this.$message({ message: res.data.message || '登录失败', type: 'error' })
-          })
-          .catch((e) => {
-            const message = e?.response?.data || e?.message || '登录请求失败'
-            this.$message({
-              showClose: true,
-              message,
-              type: 'error',
-              duration: 8000
-            })
-          })
-          .finally(() => {
-            this.loading = false
-          })
-      })
-    },
-    goTo(path) {
-      this.$router.push(path)
+
+    const token = data?.data?.token
+    const userType = data?.data?.type
+    if (!token) {
+      loginError.value = '登录返回缺少令牌，请联系管理员'
+      ElMessage.error(loginError.value)
+      return
     }
+
+    setLoginSession(form.number, token, userType)
+    ElMessage.success('登录成功')
+    router.push('/home')
+  } catch (error) {
+    loginError.value = getErrorMessage(error)
+    ElMessage.error(loginError.value)
+  } finally {
+    loading.value = false
   }
 }
 </script>
 
 <style scoped>
-.login-form-layout {
-  position: absolute;
-  left: 0;
-  right: 0;
-  width: 440px;
-  margin: 140px auto;
-  border-top: 10px solid #409eff;
+.auth-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 460px;
+  gap: clamp(20px, 4vw, 56px);
+  min-height: 100vh;
+  padding: clamp(20px, 5vw, 50px);
 }
 
-.login-title {
-  text-align: center;
+.auth-hero,
+.auth-form {
+  padding: clamp(20px, 3vw, 32px);
 }
 
-.login {
-  position: fixed;
-  top: 0;
-  left: 0;
+.hero-logo {
+  width: 64px;
+  height: 64px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--am-accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.auth-hero h1 {
+  margin: 0;
+  font-size: clamp(34px, 5vw, 56px);
+  line-height: 1.04;
+}
+
+.hero-copy {
+  margin: 14px 0 0;
+  color: var(--am-text-soft);
+  line-height: 1.8;
+}
+
+.hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.auth-form {
+  align-self: center;
+}
+
+.auth-form h2 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.desc {
+  margin: 8px 0 18px;
+  color: var(--am-muted);
+}
+
+.auth-form :deep(.el-form-item__label) {
+  font-weight: 700;
+}
+
+.auth-form :deep(.el-input__wrapper) {
+  min-height: 44px;
+}
+
+.submit-btn {
   width: 100%;
-  overflow-y: auto;
-  height: 100%;
-  background: url("../assets/04.jpg") center top / cover no-repeat;
+  margin-top: 8px;
+}
+
+.error-alert {
+  margin-bottom: 10px;
+}
+
+.footer-tip {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  color: var(--am-muted);
+}
+
+@media (max-width: 1024px) {
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-form {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-metrics {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -3,10 +3,13 @@ package com.zpark.sb.controller;
 import com.zpark.sb.config.Result;
 import com.zpark.sb.config.ResultCode;
 import com.zpark.sb.entity.Department;
+import com.zpark.sb.service.AuthContextService;
 import com.zpark.sb.service.DepartmentService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -15,16 +18,24 @@ public class DepartmentController {
 
     @Autowired
     private DepartmentService departmentService;
+    @Autowired
+    private AuthContextService authContextService;
 
     @ResponseBody
     @RequestMapping(value = "/list",method = RequestMethod.GET)
-    public List<Department> get(){
+    public List<Department> get(HttpServletRequest request){
+        if (!authContextService.isAdmin(request)) {
+            return Collections.emptyList();
+        }
         return departmentService.getAll();
     }
 
     @ResponseBody
     @RequestMapping(value = "/insert",method = RequestMethod.POST)
-    public Result insert(@RequestBody Department department){
+    public Result insert(@RequestBody Department department, HttpServletRequest request){
+        if (!authContextService.isAdmin(request)) {
+            return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
+        }
         int size = departmentService.insert(department);
         if(size == 1){
             return Result.failure(ResultCode.USER_HAS_EXISTED);
@@ -35,7 +46,10 @@ public class DepartmentController {
 
     @ResponseBody
     @RequestMapping(value = "/update",method = RequestMethod.POST)
-    public int update(@RequestBody Department department){
+    public int update(@RequestBody Department department, HttpServletRequest request){
+        if (!authContextService.isAdmin(request)) {
+            return 403;
+        }
 //        int size = departmentService.update(department);
 //        if(size == 1){
 //            return Result.failure(ResultCode.USER_HAS_EXISTED);
@@ -47,13 +61,19 @@ public class DepartmentController {
 
     @ResponseBody
     @RequestMapping(value = "/findByName",method = RequestMethod.GET)
-    public List<Department> findByName(@RequestParam String name){
+    public List<Department> findByName(@RequestParam String name, HttpServletRequest request){
+        if (!authContextService.isAdmin(request)) {
+            return Collections.emptyList();
+        }
         return departmentService.findByName(name);
     }
 
     @ResponseBody
     @RequestMapping(value = "/deleteById",method = RequestMethod.POST)
-    public Result deleteById(@RequestBody Department department){
+    public Result deleteById(@RequestBody Department department, HttpServletRequest request){
+        if (!authContextService.isAdmin(request)) {
+            return Result.failure(ResultCode.PERMISSION_NO_ACCESS);
+        }
         int size = departmentService.deleteById(department.getId());
         if(size == 0){
             return Result.success();
