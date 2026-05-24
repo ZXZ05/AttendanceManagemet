@@ -1,28 +1,40 @@
-const LOGIN_COOKIE_KEY = 'LOGIN'
-const USERNAME_KEY = 'username'
-
-function hasLoginCookie() {
-  return document.cookie
-    .split(';')
-    .map((item) => item.trim())
-    .some((item) => item.startsWith(`${LOGIN_COOKIE_KEY}=`))
+export const USER_TYPE = {
+  EMPLOYEE: '2',
+  ADMIN: '3'
 }
 
-export function setLoginSession(username) {
-  document.cookie = `${LOGIN_COOKIE_KEY}=true; path=/`
+const USERNAME_KEY = 'username'
+const TOKEN_KEY = 'auth_token'
+const USER_TYPE_KEY = 'user_type'
+
+export function setLoginSession(username, token, userType) {
   sessionStorage.setItem(USERNAME_KEY, username)
+  sessionStorage.setItem(TOKEN_KEY, token)
+  sessionStorage.setItem(USER_TYPE_KEY, userType == null ? '' : String(userType))
 }
 
 export function clearLoginSession() {
-  document.cookie = `${LOGIN_COOKIE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
   sessionStorage.removeItem(USERNAME_KEY)
+  sessionStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(USER_TYPE_KEY)
 }
 
 export function getLoginUsername() {
   return sessionStorage.getItem(USERNAME_KEY)
 }
 
-export function isAuthenticated() {
-  return hasLoginCookie() && !!getLoginUsername()
+export function getAuthToken() {
+  return sessionStorage.getItem(TOKEN_KEY)
 }
 
+export function getUserType() {
+  return sessionStorage.getItem(USER_TYPE_KEY)
+}
+
+export function isAuthenticated() {
+  return !!getLoginUsername() && !!getAuthToken()
+}
+
+export function isAdmin() {
+  return getUserType() === USER_TYPE.ADMIN
+}

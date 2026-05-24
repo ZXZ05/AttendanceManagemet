@@ -43,10 +43,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { House, Setting, Suitcase, SwitchButton } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 import { loadCurrentUser, useUser } from '@/stores/user'
 import { clearLoginSession, USER_TYPE } from '@/utils/auth'
 

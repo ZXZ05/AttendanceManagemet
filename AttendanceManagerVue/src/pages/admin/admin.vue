@@ -1,49 +1,66 @@
 <template>
-  <div>
-    <el-col :span="3" style="height: 800px; border-right: 1px #ccc solid; margin-top: 20px;">
-    <el-menu default-active="1" class="el-menu-vertical-demo" @open="handleOpen" @close="handleClose">
-      <el-menu-item index="1" @click="goTo('/employee')"><span class="navigation">员工管理</span></el-menu-item>
-      <el-menu-item index="2" @click="goTo('/department')"><span class="navigation">部门管理</span></el-menu-item>
-      <el-menu-item index="3" @click="goTo('/finance')"><span class="navigation">财务管理</span></el-menu-item>
-      <el-menu-item index="4" @click="goTo('/statistics')"><span class="navigation">统计模块</span></el-menu-item>
-      <!-- <el-menu-item index="5" @click="goTo('/customer')"><span class="navigation">客户管理</span></el-menu-item> -->
-      <!-- <el-submenu index="5">
-        <template #title><span class="navigation">会议通知模块</span></template>
-          <el-menu-item index="5-1" @click="goTo('/meeting')"><span class="smallBar">查看会议记录</span></el-menu-item>
-          <el-menu-item index="5-2" @click="goTo('/notice')"><span class="smallBar">查看通知</span></el-menu-item>
-      </el-submenu> -->
-    </el-menu>
-    </el-col>
-    <el-main>
-      <router-view/>
-    </el-main>
-  </div>
+  <section class="admin-shell">
+    <aside class="admin-nav am-panel">
+      <el-menu :default-active="activePath" router>
+        <el-menu-item v-for="item in menuItems" :key="item.path" :index="item.path">
+          <el-icon><component :is="item.icon" /></el-icon>
+          <span>{{ item.label }}</span>
+        </el-menu-item>
+      </el-menu>
+    </aside>
+
+    <main class="admin-content">
+      <router-view />
+    </main>
+  </section>
 </template>
 
-<script>
-  export default {
-    created() {
-      this.goTo("/employee");
-    },
-    methods: {
-      handleOpen(key, keyPath) {
-        console.log(key, keyPath);
-      },
-      handleClose(key, keyPath) {
-        console.log(key, keyPath);
-      },
-      goTo(path){
-        this.$router.push(path);
-      },
-    }
-  }
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { DataAnalysis, Money, OfficeBuilding, User } from '@element-plus/icons-vue'
+
+const route = useRoute()
+
+const menuItems = [
+  { path: '/employee', label: '员工管理', icon: User },
+  { path: '/department', label: '部门职位', icon: OfficeBuilding },
+  { path: '/finance', label: '财务管理', icon: Money },
+  { path: '/statistics', label: '统计分析', icon: DataAnalysis }
+]
+
+const activePath = computed(() => route.path)
 </script>
 
 <style scoped>
-  .navigation {
-    font-size: 18px;
+.admin-shell {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.admin-nav {
+  align-self: start;
+  padding: 8px;
+}
+
+.admin-nav :deep(.el-menu-item) {
+  justify-content: flex-start;
+  margin: 4px 0;
+}
+
+.admin-content {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
   }
-  .smallBar {
-    margin-left: 20px;
+
+  .admin-nav :deep(.el-menu) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 </style>
