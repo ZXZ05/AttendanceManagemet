@@ -1,4 +1,4 @@
-import { get, post } from './client'
+import { get, post, unwrapResult } from './client'
 
 export function getEmployeeList() {
   return get('/employee/list')
@@ -37,13 +37,13 @@ export function findPositionsByDepartmentID(departmentID) {
 }
 
 export function getEducationStats() {
-  return get('/employee/getEducation')
+  return get('/employee/getEducation').then(unwrapResult)
 }
 
 export function getAgeStats() {
-  return get('/employee/getAge')
+  return get('/employee/getAge').then(unwrapResult)
 }
 
 export function getNewEmployeeStats() {
-  return get('/employee/getNew')
+  return get('/employee/getNew').then(unwrapResult)
 }
