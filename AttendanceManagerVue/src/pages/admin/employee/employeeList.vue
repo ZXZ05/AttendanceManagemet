@@ -11,6 +11,10 @@
         <el-select v-model="query.departmentID" clearable placeholder="选择部门">
           <el-option v-for="item in departmentList" :key="item.id" :label="item.name" :value="item.id" />
         </el-select>
+        <el-select v-model="query.sex" clearable placeholder="性别">
+          <el-option v-for="item in sexList" :key="item.id" :label="item.value" :value="item.value" />
+        </el-select>
+        <el-input v-model.trim="query.number" clearable placeholder="输入工号" @keyup.enter="searchData" />
         <el-input v-model.trim="query.name" clearable placeholder="输入姓名" @keyup.enter="searchData" />
       </template>
       <template #right>
@@ -20,14 +24,14 @@
     </DataToolbar>
 
     <el-card shadow="never">
-      <el-table :data="tableData" border fit highlight-current-row>
-        <el-table-column prop="number" label="编号" width="120" />
-        <el-table-column prop="name" label="姓名" width="120" />
+      <el-table :data="tableData" border fit highlight-current-row @sort-change="handleSortChange">
+        <el-table-column prop="number" label="编号" width="120" sortable="custom" />
+        <el-table-column prop="name" label="姓名" width="120" sortable="custom" />
         <el-table-column prop="sex" label="性别" width="90" />
         <el-table-column prop="birthday" label="出生日期" width="130" />
-        <el-table-column prop="departmentName" label="所属部门" min-width="140" />
-        <el-table-column prop="positionName" label="职位" min-width="140" />
-        <el-table-column prop="entryDate" label="入职日期" width="130" />
+        <el-table-column prop="departmentName" label="所属部门" min-width="140" sortable="custom" />
+        <el-table-column prop="positionName" label="职位" min-width="140" sortable="custom" />
+        <el-table-column prop="entryDate" label="入职日期" width="130" sortable="custom" />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" @click="openUpdate(row)">编辑</el-button>
@@ -35,6 +39,16 @@
           </template>
         </el-table-column>
       </el-table>
+      <div class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="filteredTotal"
+        />
+      </div>
     </el-card>
 
     <FormDialog v-model="dialogVisible" :title="dialogTitle" width="760px">
@@ -105,17 +119,25 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import DataToolbar from '@/components/common/DataToolbar.vue'
 import FormDialog from '@/components/common/FormDialog.vue'
 import { getDepartmentList } from '@/api/admin'
-import { createEmployee, deleteEmployeeById, findEmployeeByNameAndDepartment, findPositionsByDepartmentID, getEmployeeList, getEmployeeTypeList, updateEmployee } from '@/api/employee'
+import { createEmployee, deleteEmployeeById, findPositionsByDepartmentID, getEmployeeList, getEmployeeTypeList, updateEmployee } from '@/api/employee'
 import { isAuthenticated } from '@/utils/auth'
 
 const router = useRouter()
-const tableData = ref([])
+const sourceData = ref([])
 const departmentList = ref([])
 const positionList = ref([])
 const typeList = ref([])
 const dialogVisible = ref(false)
 const isCreate = ref(false)
 const formRef = ref()
+const pagination = reactive({
+  page: 1,
+  pageSize: 10
+})
+const sortState = reactive({
+  prop: '',
+  order: ''
+})
 
 const query = reactive(createEmployeeForm())
 const form = reactive(createEmployeeForm())
@@ -181,6 +203,51 @@ function resetFormData(target, source = createEmployeeForm()) {
   Object.assign(target, source)
 }
 
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function getSortableValue(row, prop) {
+  if (!row || !prop) return ''
+  const value = row[prop]
+  if (value == null) return ''
+  if (typeof value === 'number') return value
+  return String(value).trim().toLowerCase()
+}
+
+function applySort(list) {
+  if (!sortState.prop || !sortState.order) return list
+  const sorted = [...list]
+  const direction = sortState.order === 'ascending' ? 1 : -1
+  sorted.sort((a, b) => {
+    const aValue = getSortableValue(a, sortState.prop)
+    const bValue = getSortableValue(b, sortState.prop)
+    if (aValue > bValue) return direction
+    if (aValue < bValue) return -direction
+    return 0
+  })
+  return sorted
+}
+
+const filteredData = computed(() => {
+  const nameKeyword = normalizeText(query.name)
+  const numberKeyword = normalizeText(query.number)
+  const list = sourceData.value.filter((item) => {
+    if (query.departmentID && item.departmentID !== query.departmentID) return false
+    if (query.sex && item.sex !== query.sex) return false
+    if (nameKeyword && !normalizeText(item.name).includes(nameKeyword)) return false
+    if (numberKeyword && !normalizeText(item.number).includes(numberKeyword)) return false
+    return true
+  })
+  return applySort(list)
+})
+
+const filteredTotal = computed(() => filteredData.value.length)
+const tableData = computed(() => {
+  const start = (pagination.page - 1) * pagination.pageSize
+  return filteredData.value.slice(start, start + pagination.pageSize)
+})
+
 async function loadData() {
   if (!isAuthenticated()) {
     ElMessage.error('未登录或登录信息过期')
@@ -189,7 +256,9 @@ async function loadData() {
   }
 
   try {
-    tableData.value = await getEmployeeList()
+    const data = await getEmployeeList()
+    sourceData.value = Array.isArray(data) ? data : []
+    pagination.page = 1
   } catch (error) {
     ElMessage.error('获取员工列表失败')
   }
@@ -225,16 +294,20 @@ async function handleDepartmentChange(value) {
 }
 
 async function searchData() {
-  try {
-    tableData.value = await findEmployeeByNameAndDepartment({ ...query })
-  } catch (error) {
-    ElMessage.error('查询员工失败')
-  }
+  pagination.page = 1
 }
 
 function resetSearch() {
   resetFormData(query)
-  loadData()
+  sortState.prop = ''
+  sortState.order = ''
+  pagination.page = 1
+}
+
+function handleSortChange({ prop, order }) {
+  sortState.prop = prop || ''
+  sortState.order = order || ''
+  pagination.page = 1
 }
 
 function openCreate() {
@@ -322,6 +395,12 @@ onMounted(() => {
 :deep(.el-date-editor.el-input),
 :deep(.el-input) {
   width: 100%;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 @media (max-width: 720px) {

@@ -7,12 +7,16 @@ import com.zpark.sb.entity.Chart;
 import com.zpark.sb.entity.Employee;
 import com.zpark.sb.service.AuthContextService;
 import com.zpark.sb.service.EmployeeService;
+import com.zpark.sb.service.LoginRecordService;
+import com.zpark.sb.service.OssStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @CrossOrigin
 @RestController
@@ -23,6 +27,10 @@ public class EmployeeController {
     private EmployeeService employeeService;
     @Autowired
     private AuthContextService authContextService;
+    @Autowired
+    private LoginRecordService loginRecordService;
+    @Autowired
+    private OssStorageService ossStorageService;
 
     @ResponseBody
     @RequestMapping(value = "/list",method = RequestMethod.GET)
@@ -116,6 +124,66 @@ public class EmployeeController {
             return null;
         }
         return employeeService.findByNumber(employee.getNumber());
+    }
+
+    @ResponseBody
+    @GetMapping("/profile")
+    public Result profile(HttpServletRequest request) {
+        String currentUserNumber = authContextService.getCurrentUserNumber(request);
+        if (currentUserNumber == null) {
+            return Result.failure(ResultCode.USER_NOT_LOGGED_IN);
+        }
+        Employee employee = employeeService.findDetailByNumber(currentUserNumber);
+        if (employee == null) {
+            return Result.failure(ResultCode.USER_NOT_EXIST);
+        }
+        employee.setAvatarUrl(ossStorageService.resolveAvatarUrl(employee.getAvatar()));
+        return Result.success(employee);
+    }
+
+    @ResponseBody
+    @PostMapping("/updateProfile")
+    public Result updateProfile(@RequestBody Employee employee, HttpServletRequest request) {
+        String currentUserNumber = authContextService.getCurrentUserNumber(request);
+        if (currentUserNumber == null) {
+            return Result.failure(ResultCode.USER_NOT_LOGGED_IN);
+        }
+        Employee existed = employeeService.findByNumber(currentUserNumber);
+        if (existed == null) {
+            return Result.failure(ResultCode.USER_NOT_EXIST);
+        }
+        String phone = employee == null ? null : employee.getPhone();
+        String address = employee == null ? null : employee.getAddress();
+        String avatar = employee == null ? null : employee.getAvatar();
+
+        existed.setPhone(phone);
+        existed.setAddress(address);
+        if (avatar != null && avatar.length() > 500) {
+            return Result.failure(ResultCode.PARAM_IS_INVALID);
+        }
+        String oldAvatarKey = existed.getAvatar();
+        existed.setAvatar(avatar);
+        employeeService.update(existed);
+        if (oldAvatarKey != null && !oldAvatarKey.equals(avatar) && ossStorageService.isAvatarKey(oldAvatarKey)) {
+            ossStorageService.deleteAvatarQuietly(oldAvatarKey);
+        }
+        Employee detail = employeeService.findDetailByNumber(currentUserNumber);
+        if (detail != null) {
+            detail.setAvatarUrl(ossStorageService.resolveAvatarUrl(detail.getAvatar()));
+        }
+        return Result.success(detail);
+    }
+
+    @ResponseBody
+    @GetMapping("/loginRecords")
+    public Result loginRecords(@RequestParam(required = false) Integer limit, HttpServletRequest request) {
+        String currentUserNumber = authContextService.getCurrentUserNumber(request);
+        if (currentUserNumber == null) {
+            return Result.failure(ResultCode.USER_NOT_LOGGED_IN);
+        }
+        Map<String, Object> data = new HashMap<>();
+        data.put("records", loginRecordService.listByEmployeeNumber(currentUserNumber, limit));
+        return Result.success(data);
     }
 
     @ResponseBody

@@ -6,13 +6,35 @@
       </template>
     </PageHeader>
 
+    <DataToolbar>
+      <template #left>
+        <el-input v-model.trim="query.keyword" clearable placeholder="标题/详情关键词" @keyup.enter="searchData" />
+        <el-input v-model.trim="query.publisherName" clearable placeholder="发布人" @keyup.enter="searchData" />
+        <el-select v-model="query.roomID" clearable placeholder="会议室">
+          <el-option v-for="item in roomList" :key="item.id" :label="item.name" :value="item.id" />
+        </el-select>
+        <el-date-picker
+          v-model="query.beginDateRange"
+          type="daterange"
+          value-format="YYYY-MM-DD"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+        />
+      </template>
+      <template #right>
+        <el-button type="primary" @click="searchData">查询</el-button>
+        <el-button @click="resetSearch">重置</el-button>
+      </template>
+    </DataToolbar>
+
     <el-card shadow="never">
-      <el-table :data="tableData" border fit highlight-current-row>
-        <el-table-column prop="title" label="标题" min-width="160" />
-        <el-table-column prop="publisherName" label="发布人" width="120" />
-        <el-table-column prop="beginTime" label="开始时间" min-width="170" />
-        <el-table-column prop="endTime" label="结束时间" min-width="170" />
-        <el-table-column prop="roomName" label="地点" width="140" />
+      <el-table :data="tableData" border fit highlight-current-row @sort-change="handleSortChange">
+        <el-table-column prop="title" label="标题" min-width="160" sortable="custom" />
+        <el-table-column prop="publisherName" label="发布人" width="120" sortable="custom" />
+        <el-table-column prop="beginTime" label="开始时间" min-width="170" sortable="custom" />
+        <el-table-column prop="endTime" label="结束时间" min-width="170" sortable="custom" />
+        <el-table-column prop="roomName" label="地点" width="140" sortable="custom" />
         <el-table-column prop="details" label="详情" min-width="200" show-overflow-tooltip />
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
@@ -20,6 +42,16 @@
           </template>
         </el-table-column>
       </el-table>
+      <div class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="filteredTotal"
+        />
+      </div>
     </el-card>
 
     <FormDialog v-model="dialogVisible" :title="dialogTitle" width="700px">
@@ -80,6 +112,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
+import DataToolbar from '@/components/common/DataToolbar.vue'
 import FormDialog from '@/components/common/FormDialog.vue'
 import { createMeetingOrNotice, getAllMeeting, getRoomList } from '@/api/meeting'
 import { loadCurrentUser, useUser } from '@/stores/user'
@@ -87,7 +120,7 @@ import { getLoginUsername, hasPermission, PERMISSION } from '@/utils/auth'
 
 const loginNumber = getLoginUsername() || ''
 const { name, type } = useUser()
-const tableData = ref([])
+const sourceData = ref([])
 const roomList = ref([])
 const dialogVisible = ref(false)
 const isCreate = ref(false)
@@ -95,6 +128,15 @@ const isUpdate = ref(false)
 const isAdmin = computed(() => hasPermission(PERMISSION.ANNOUNCEMENT_MANAGE, type.value))
 const formRef = ref()
 const form = reactive(createForm())
+const query = reactive(createQueryForm())
+const pagination = reactive({
+  page: 1,
+  pageSize: 10
+})
+const sortState = reactive({
+  prop: '',
+  order: ''
+})
 
 const dialogTitle = computed(() => (isCreate.value ? '发布会议' : '会议详情'))
 const rules = {
@@ -127,9 +169,70 @@ function createForm() {
   }
 }
 
+function createQueryForm() {
+  return {
+    keyword: '',
+    publisherName: '',
+    roomID: '',
+    beginDateRange: []
+  }
+}
+
 function resetFormData(data = createForm()) {
   Object.assign(form, data)
 }
+
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function getSortableValue(row, prop) {
+  if (!row || !prop) return ''
+  const value = row[prop]
+  if (value == null) return ''
+  if (typeof value === 'number') return value
+  return String(value).trim().toLowerCase()
+}
+
+function applySort(list) {
+  if (!sortState.prop || !sortState.order) return list
+  const sorted = [...list]
+  const direction = sortState.order === 'ascending' ? 1 : -1
+  sorted.sort((a, b) => {
+    const aValue = getSortableValue(a, sortState.prop)
+    const bValue = getSortableValue(b, sortState.prop)
+    if (aValue > bValue) return direction
+    if (aValue < bValue) return -direction
+    return 0
+  })
+  return sorted
+}
+
+const filteredData = computed(() => {
+  const keyword = normalizeText(query.keyword)
+  const publisherName = normalizeText(query.publisherName)
+  const [beginDate, endDate] = Array.isArray(query.beginDateRange) ? query.beginDateRange : []
+  const list = sourceData.value.filter((item) => {
+    if (query.roomID && item.roomID !== query.roomID) return false
+    if (publisherName && !normalizeText(item.publisherName).includes(publisherName)) return false
+    if (keyword) {
+      const text = `${item.title || ''} ${item.details || ''}`
+      if (!normalizeText(text).includes(keyword)) return false
+    }
+    if (beginDate && endDate) {
+      const meetingDate = String(item.beginTime || '').slice(0, 10)
+      if (!meetingDate || meetingDate < beginDate || meetingDate > endDate) return false
+    }
+    return true
+  })
+  return applySort(list)
+})
+
+const filteredTotal = computed(() => filteredData.value.length)
+const tableData = computed(() => {
+  const start = (pagination.page - 1) * pagination.pageSize
+  return filteredData.value.slice(start, start + pagination.pageSize)
+})
 
 function getCurrentDateTime() {
   const date = new Date()
@@ -139,7 +242,9 @@ function getCurrentDateTime() {
 
 async function loadData() {
   try {
-    tableData.value = await getAllMeeting()
+    const data = await getAllMeeting()
+    sourceData.value = Array.isArray(data) ? data : []
+    pagination.page = 1
   } catch (error) {
     ElMessage.error('获取会议记录失败')
   }
@@ -163,6 +268,23 @@ async function openCreate() {
   isCreate.value = true
   isUpdate.value = false
   dialogVisible.value = true
+}
+
+function searchData() {
+  pagination.page = 1
+}
+
+function resetSearch() {
+  Object.assign(query, createQueryForm())
+  sortState.prop = ''
+  sortState.order = ''
+  pagination.page = 1
+}
+
+function handleSortChange({ prop, order }) {
+  sortState.prop = prop || ''
+  sortState.order = order || ''
+  pagination.page = 1
 }
 
 function openDetail(row) {
@@ -211,6 +333,12 @@ onMounted(async () => {
 :deep(.el-date-editor.el-input),
 :deep(.el-select) {
   width: 100%;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 @media (max-width: 720px) {

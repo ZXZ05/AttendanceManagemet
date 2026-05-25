@@ -24,6 +24,18 @@ export function updatePassword(payload) {
   return post('/employee/updatePassword', payload)
 }
 
+export function getEmployeeProfile() {
+  return get('/employee/profile').then(unwrapResult)
+}
+
+export function updateEmployeeProfile(payload) {
+  return post('/employee/updateProfile', payload).then(unwrapResult)
+}
+
+export function getLoginRecords(params = {}) {
+  return get('/employee/loginRecords', { params }).then(unwrapResult)
+}
+
 export function deleteEmployeeById(id) {
   return post('/employee/deleteById', { id })
 }

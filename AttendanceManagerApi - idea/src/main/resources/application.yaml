@@ -17,3 +17,11 @@ server:
 attendance:
   on-time: '08:30'
   off-time: '17:30'
+aliyun:
+  oss:
+    endpoint: oss-cn-hangzhou.aliyuncs.com
+    bucket: attendance1
+    access-key-id: ${ALIYUN_OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_OSS_ACCESS_KEY_SECRET:}
+    public-url-prefix: https://attendance1.oss-cn-hangzhou.aliyuncs.com
+    avatar-dir: avatar

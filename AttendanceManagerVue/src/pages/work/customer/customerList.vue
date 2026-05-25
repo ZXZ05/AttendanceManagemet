@@ -11,21 +11,23 @@
         <el-select v-model="query.type" clearable placeholder="客户类型">
           <el-option v-for="item in customerTypeList" :key="item.id" :label="item.value" :value="item.value" />
         </el-select>
+        <el-input v-model.trim="query.number" clearable placeholder="客户编号" @keyup.enter="searchData" />
         <el-input v-model.trim="query.name" clearable placeholder="客户名称" @keyup.enter="searchData" />
+        <el-input v-model.trim="query.phone" clearable placeholder="联系电话" @keyup.enter="searchData" />
       </template>
       <template #right>
         <el-button type="primary" @click="searchData">查询</el-button>
-        <el-button @click="loadData">重置</el-button>
+        <el-button @click="resetSearch">重置</el-button>
       </template>
     </DataToolbar>
 
     <el-card shadow="never">
-      <el-table :data="tableData" border fit highlight-current-row>
-        <el-table-column prop="number" label="客户编号" width="130" />
-        <el-table-column prop="name" label="客户名称" min-width="150" />
-        <el-table-column prop="phone" label="联系电话" width="140" />
+      <el-table :data="tableData" border fit highlight-current-row @sort-change="handleSortChange">
+        <el-table-column prop="number" label="客户编号" width="130" sortable="custom" />
+        <el-table-column prop="name" label="客户名称" min-width="150" sortable="custom" />
+        <el-table-column prop="phone" label="联系电话" width="140" sortable="custom" />
         <el-table-column prop="address" label="地址" min-width="180" />
-        <el-table-column prop="type" label="类型" width="120" />
+        <el-table-column prop="type" label="类型" width="120" sortable="custom" />
         <el-table-column prop="remarks" label="备注" min-width="180" />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
@@ -34,6 +36,16 @@
           </template>
         </el-table-column>
       </el-table>
+      <div class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="filteredTotal"
+        />
+      </div>
     </el-card>
 
     <FormDialog v-model="dialogVisible" :title="dialogTitle" width="640px">
@@ -75,17 +87,25 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataToolbar from '@/components/common/DataToolbar.vue'
 import FormDialog from '@/components/common/FormDialog.vue'
-import { createCustomer, deleteCustomerById, findCustomerByApplyNumber, findCustomerByNameAndType, getCustomerList, updateCustomer } from '@/api/customer'
+import { createCustomer, deleteCustomerById, findCustomerByApplyNumber, getCustomerList, updateCustomer } from '@/api/customer'
 import { loadCurrentUser, useUser } from '@/stores/user'
 import { canAccessAdminPortal, getLoginUsername } from '@/utils/auth'
 
 const loginNumber = getLoginUsername() || ''
 const { type } = useUser()
-const tableData = ref([])
+const sourceData = ref([])
 const dialogVisible = ref(false)
 const isCreate = ref(false)
 const isAdmin = computed(() => canAccessAdminPortal(type.value))
 const formRef = ref()
+const pagination = reactive({
+  page: 1,
+  pageSize: 10
+})
+const sortState = reactive({
+  prop: '',
+  order: ''
+})
 
 const customerTypeList = [
   { id: '1', value: '潜在客户' },
@@ -119,21 +139,77 @@ function resetFormData(target, source = createCustomerForm()) {
   Object.assign(target, source)
 }
 
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function getSortableValue(row, prop) {
+  if (!row || !prop) return ''
+  const value = row[prop]
+  if (value == null) return ''
+  if (typeof value === 'number') return value
+  return String(value).trim().toLowerCase()
+}
+
+function applySort(list) {
+  if (!sortState.prop || !sortState.order) return list
+  const sorted = [...list]
+  const direction = sortState.order === 'ascending' ? 1 : -1
+  sorted.sort((a, b) => {
+    const aValue = getSortableValue(a, sortState.prop)
+    const bValue = getSortableValue(b, sortState.prop)
+    if (aValue > bValue) return direction
+    if (aValue < bValue) return -direction
+    return 0
+  })
+  return sorted
+}
+
+const filteredData = computed(() => {
+  const numberKeyword = normalizeText(query.number)
+  const nameKeyword = normalizeText(query.name)
+  const phoneKeyword = normalizeText(query.phone)
+  const list = sourceData.value.filter((item) => {
+    if (query.type && item.type !== query.type) return false
+    if (numberKeyword && !normalizeText(item.number).includes(numberKeyword)) return false
+    if (nameKeyword && !normalizeText(item.name).includes(nameKeyword)) return false
+    if (phoneKeyword && !normalizeText(item.phone).includes(phoneKeyword)) return false
+    return true
+  })
+  return applySort(list)
+})
+
+const filteredTotal = computed(() => filteredData.value.length)
+const tableData = computed(() => {
+  const start = (pagination.page - 1) * pagination.pageSize
+  return filteredData.value.slice(start, start + pagination.pageSize)
+})
+
 async function loadData() {
-  resetFormData(query)
   try {
-    tableData.value = isAdmin.value ? await getCustomerList() : await findCustomerByApplyNumber(loginNumber)
+    const data = isAdmin.value ? await getCustomerList() : await findCustomerByApplyNumber(loginNumber)
+    sourceData.value = Array.isArray(data) ? data : []
+    pagination.page = 1
   } catch (error) {
     ElMessage.error('获取客户列表失败')
   }
 }
 
 async function searchData() {
-  try {
-    tableData.value = await findCustomerByNameAndType({ ...query })
-  } catch (error) {
-    ElMessage.error('查询客户失败')
-  }
+  pagination.page = 1
+}
+
+function resetSearch() {
+  resetFormData(query)
+  sortState.prop = ''
+  sortState.order = ''
+  pagination.page = 1
+}
+
+function handleSortChange({ prop, order }) {
+  sortState.prop = prop || ''
+  sortState.order = order || ''
+  pagination.page = 1
 }
 
 function openCreate() {
@@ -203,6 +279,12 @@ onMounted(async () => {
 :deep(.el-select),
 :deep(.el-input) {
   min-width: 180px;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 @media (max-width: 720px) {

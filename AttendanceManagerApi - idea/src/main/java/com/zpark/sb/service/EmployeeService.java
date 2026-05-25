@@ -170,6 +170,10 @@ public class EmployeeService {
         return employeeDao.findByNumber(number);
     }
 
+    public Employee findDetailByNumber(String number) {
+        return employeeDao.findDetailByNumber(number);
+    }
+
     public List<Employee> findByNameAndDepartment(Employee employee) {
         return employeeDao.findByNameAndDepartment(employee);
     }

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.zpark.sb.dao.NotificationMessageDao" >
+  <resultMap id="BaseResultMap" type="com.zpark.sb.entity.NotificationMessage" >
+    <id column="id" property="id" jdbcType="VARCHAR" />
+    <result column="receiverNumber" property="receiverNumber" jdbcType="VARCHAR" />
+    <result column="title" property="title" jdbcType="VARCHAR" />
+    <result column="content" property="content" jdbcType="VARCHAR" />
+    <result column="type" property="type" jdbcType="VARCHAR" />
+    <result column="relatedType" property="relatedType" jdbcType="VARCHAR" />
+    <result column="relatedId" property="relatedId" jdbcType="VARCHAR" />
+    <result column="status" property="status" jdbcType="VARCHAR" />
+    <result column="createdTime" property="createdTime" jdbcType="TIMESTAMP" />
+    <result column="readTime" property="readTime" jdbcType="TIMESTAMP" />
+  </resultMap>
+
+  <sql id="Base_Column_List" >
+    id, receiverNumber, title, content, type, relatedType, relatedId, status, createdTime, readTime
+  </sql>
+
+  <insert id="insert" parameterType="com.zpark.sb.entity.NotificationMessage" >
+    insert into notification_message
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >id,</if>
+      <if test="receiverNumber != null" >receiverNumber,</if>
+      <if test="title != null" >title,</if>
+      <if test="content != null" >content,</if>
+      <if test="type != null" >type,</if>
+      <if test="relatedType != null" >relatedType,</if>
+      <if test="relatedId != null" >relatedId,</if>
+      <if test="status != null" >status,</if>
+      <if test="createdTime != null" >createdTime,</if>
+      <if test="readTime != null" >readTime,</if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >#{id},</if>
+      <if test="receiverNumber != null" >#{receiverNumber},</if>
+      <if test="title != null" >#{title},</if>
+      <if test="content != null" >#{content},</if>
+      <if test="type != null" >#{type},</if>
+      <if test="relatedType != null" >#{relatedType},</if>
+      <if test="relatedId != null" >#{relatedId},</if>
+      <if test="status != null" >#{status},</if>
+      <if test="createdTime != null" >#{createdTime},</if>
+      <if test="readTime != null" >#{readTime},</if>
+    </trim>
+  </insert>
+
+  <select id="selectById" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select
+    <include refid="Base_Column_List" />
+    from notification_message
+    where id = #{id}
+  </select>
+
+  <select id="findByReceiver" resultMap="BaseResultMap" parameterType="com.zpark.sb.entity.NotificationMessage" >
+    select
+    <include refid="Base_Column_List" />
+    from notification_message
+    where receiverNumber = #{receiverNumber}
+    <if test="status != null and status != ''">
+      and status = #{status}
+    </if>
+    order by createdTime desc
+    <if test="limit != null and limit > 0">
+      limit #{limit}
+    </if>
+  </select>
+
+  <select id="countUnread" resultType="java.lang.Integer">
+    select count(1) from notification_message
+    where receiverNumber = #{receiverNumber}
+      and status = '0'
+  </select>
+
+  <update id="markRead">
+    update notification_message
+    set status = '1', readTime = #{readTime}
+    where id = #{id}
+      and receiverNumber = #{receiverNumber}
+      and status = '0'
+  </update>
+
+  <update id="markAllRead">
+    update notification_message
+    set status = '1', readTime = #{readTime}
+    where receiverNumber = #{receiverNumber}
+      and status = '0'
+  </update>
+</mapper>
+

@@ -1,84 +1,123 @@
 <template>
   <section class="statistics-page">
-    <PageHeader kicker="Analytics" title="统计分析" description="按学历、年龄、入职趋势和补卡异常查看组织运行状态。">
+    <PageHeader kicker="Analytics" title="统计分析" description="查看组织结构、出勤趋势、请假占比、资产采购与薪资支出。">
       <template #actions>
-        <el-date-picker v-model="repairMonth" type="month" value-format="YYYY-MM" placeholder="补卡统计月份" />
-        <el-button type="primary" @click="loadRepairStats">刷新补卡统计</el-button>
+        <el-date-picker v-model="query.month" type="month" value-format="YYYY-MM" placeholder="统计截止月份" />
+        <el-select v-model="query.months" class="span-select" placeholder="统计月数">
+          <el-option :value="3" label="近 3 个月" />
+          <el-option :value="6" label="近 6 个月" />
+          <el-option :value="12" label="近 12 个月" />
+        </el-select>
+        <el-button type="primary" @click="loadOverview">刷新统计</el-button>
       </template>
     </PageHeader>
 
     <div class="metric-grid">
-      <MetricCard label="补卡申请" :value="repairStats.total" hint="次" />
-      <MetricCard label="待审批" :value="repairStats.pending" hint="次" />
-      <MetricCard label="已通过" :value="repairStats.approved" hint="次" />
-      <MetricCard label="高频异常员工" :value="topEmployeeName" hint="TOP 1" />
+      <MetricCard label="部门数量" :value="departmentCount" hint="个" />
+      <MetricCard label="员工总人数" :value="employeeCount" hint="人" />
+      <MetricCard label="总出勤人次" :value="attendanceTotal" hint="次" />
+      <MetricCard label="薪资支出总额" :value="salaryTotalText" hint="元" />
     </div>
 
     <div class="chart-grid">
       <el-card shadow="never">
         <template #header>
-          <strong>补卡类型分布</strong>
+          <strong>部门人数分布</strong>
         </template>
-        <div id="repairTypes" class="chart"></div>
+        <div id="departmentChart" class="chart"></div>
       </el-card>
 
       <el-card shadow="never">
         <template #header>
-          <strong>高频异常员工</strong>
+          <strong>请假类型占比（小时）</strong>
         </template>
-        <el-table :data="repairStats.topEmployees" border fit highlight-current-row>
-          <el-table-column prop="employeeName" label="员工" min-width="120" />
-          <el-table-column prop="employeeNumber" label="编号" width="110" />
-          <el-table-column prop="count" label="补卡次数" width="110" />
-          <el-table-column prop="pending" label="待审批" width="100" />
-        </el-table>
-      </el-card>
-
-      <el-card shadow="never">
-        <template #header>
-          <strong>员工学历分布</strong>
-        </template>
-        <div id="education" class="chart"></div>
-      </el-card>
-
-      <el-card shadow="never">
-        <template #header>
-          <strong>员工年龄分布</strong>
-        </template>
-        <div id="age" class="chart"></div>
+        <div id="leaveRatioChart" class="chart"></div>
       </el-card>
 
       <el-card shadow="never" class="wide">
         <template #header>
-          <strong>近半年入职趋势</strong>
+          <strong>月度出勤趋势</strong>
         </template>
-        <div id="newcomers" class="chart trend"></div>
+        <div id="attendanceChart" class="chart trend"></div>
+      </el-card>
+
+      <el-card shadow="never" class="wide">
+        <template #header>
+          <strong>迟到早退趋势</strong>
+        </template>
+        <div id="lateEarlyChart" class="chart trend"></div>
+      </el-card>
+
+      <el-card shadow="never" class="wide">
+        <template #header>
+          <strong>资产采购金额趋势</strong>
+        </template>
+        <div id="assetChart" class="chart trend"></div>
+      </el-card>
+
+      <el-card shadow="never" class="wide">
+        <template #header>
+          <strong>薪资支出趋势</strong>
+        </template>
+        <div id="salaryChart" class="chart trend"></div>
       </el-card>
     </div>
   </section>
 </template>
 
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive } from 'vue'
 import { Chart } from '@antv/g2'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import MetricCard from '@/components/common/MetricCard.vue'
-import { getAgeStats, getCheckRepairStats, getEducationStats, getNewEmployeeStats } from '@/api/statistics'
+import { getStatisticsOverview } from '@/api/statistics'
 
-const charts = reactive({
-  repairTypes: null,
-  education: null,
-  age: null,
-  newcomers: null
+const query = reactive({
+  month: getMonthText(new Date()),
+  months: 6
 })
 
-const education = ref([])
-const age = ref([])
-const newcomers = ref([])
-const repairMonth = ref(getMonthText(new Date()))
-const repairStats = reactive(createRepairStats())
-const topEmployeeName = ref('-')
+const charts = reactive({
+  departmentChart: null,
+  leaveRatioChart: null,
+  attendanceChart: null,
+  lateEarlyChart: null,
+  assetChart: null,
+  salaryChart: null
+})
+
+const overview = reactive({
+  range: {
+    startMonth: '',
+    endMonth: '',
+    months: 6
+  },
+  departmentDistribution: [],
+  attendanceTrend: [],
+  lateEarlyTrend: [],
+  leaveTypeRatio: [],
+  assetAmountTrend: [],
+  salaryAmountTrend: []
+})
+
+const departmentCount = computed(() => overview.departmentDistribution.length)
+const employeeCount = computed(() => overview.departmentDistribution.reduce((sum, item) => sum + Number(item.value || 0), 0))
+const attendanceTotal = computed(() => overview.attendanceTrend.reduce((sum, item) => sum + Number(item.value || 0), 0))
+const salaryTotal = computed(() => overview.salaryAmountTrend.reduce((sum, item) => sum + Number(item.value || 0), 0))
+const salaryTotalText = computed(() => formatAmount(salaryTotal.value))
+
+function getMonthText(date) {
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`
+}
+
+function formatAmount(value) {
+  return Number(value || 0).toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
 
 function destroyChart(name) {
   if (charts[name]) {
@@ -87,150 +126,169 @@ function destroyChart(name) {
   }
 }
 
-function renderEducation() {
-  const container = document.getElementById('education')
+function destroyAllCharts() {
+  destroyChart('departmentChart')
+  destroyChart('leaveRatioChart')
+  destroyChart('attendanceChart')
+  destroyChart('lateEarlyChart')
+  destroyChart('assetChart')
+  destroyChart('salaryChart')
+}
+
+function renderDepartmentChart() {
+  const container = document.getElementById('departmentChart')
   if (!container) return
-  destroyChart('education')
+  destroyChart('departmentChart')
 
   const chart = new Chart({
-    container: 'education',
+    container: 'departmentChart',
     autoFit: true,
-    height: 330
+    height: 320,
+    padding: [28, 24, 42, 48]
+  })
+  chart.data(overview.departmentDistribution)
+  chart.axis('value', { grid: { line: { style: { stroke: 'rgba(255,255,255,0.1)' } } } })
+  chart.tooltip({ showMarkers: false })
+  chart.interval().position('type*value').color('type')
+  chart.interaction('element-active')
+  chart.render()
+  charts.departmentChart = chart
+}
+
+function renderLeaveRatioChart() {
+  const container = document.getElementById('leaveRatioChart')
+  if (!container) return
+  destroyChart('leaveRatioChart')
+
+  const chart = new Chart({
+    container: 'leaveRatioChart',
+    autoFit: true,
+    height: 320
   })
   chart.coordinate('theta', { radius: 0.75 })
-  chart.data(education.value)
+  chart.data(overview.leaveTypeRatio)
   chart.scale('percent', {
-    formatter: (value) => `${Number(value) * 100}%`
+    formatter: (value) => `${Math.round(Number(value || 0) * 100)}%`
   })
   chart.tooltip({ showTitle: false, showMarkers: false })
-  chart.interval().position('percent').color('item').adjust('stack')
+  chart.interval().position('percent').color('type').adjust('stack')
   chart.interaction('element-active')
   chart.render()
-  charts.education = chart
+  charts.leaveRatioChart = chart
 }
 
-function renderRepairTypes() {
-  const container = document.getElementById('repairTypes')
+function renderAttendanceChart() {
+  const container = document.getElementById('attendanceChart')
   if (!container) return
-  destroyChart('repairTypes')
+  destroyChart('attendanceChart')
 
   const chart = new Chart({
-    container: 'repairTypes',
-    autoFit: true,
-    height: 330,
-    padding: [28, 20, 42, 42]
-  })
-  chart.data(repairStats.typeItems)
-  chart.axis('value', false)
-  chart.tooltip({ showMarkers: false })
-  chart.interval().position('type*value').color('type')
-  chart.interaction('element-active')
-  chart.render()
-  charts.repairTypes = chart
-}
-
-function renderAge() {
-  const container = document.getElementById('age')
-  if (!container) return
-  destroyChart('age')
-
-  const chart = new Chart({
-    container: 'age',
-    autoFit: true,
-    height: 330,
-    padding: [28, 20, 42, 42]
-  })
-  chart.data(age.value)
-  chart.axis('value', false)
-  chart.tooltip({ showMarkers: false })
-  chart.interval().position('type*value').color('type')
-  chart.interaction('element-active')
-  chart.render()
-  charts.age = chart
-}
-
-function renderNewcomers() {
-  const container = document.getElementById('newcomers')
-  if (!container) return
-  destroyChart('newcomers')
-
-  const chart = new Chart({
-    container: 'newcomers',
+    container: 'attendanceChart',
     autoFit: true,
     height: 320,
     padding: [28, 30, 42, 48]
   })
-  chart.data(newcomers.value)
-  chart.axis('time', { tickLine: null })
-  chart.tooltip({ showMarkers: false })
-  chart.interval().position('time*value').color('time')
+  chart.data(overview.attendanceTrend)
+  chart.axis('value', { grid: { line: { style: { stroke: 'rgba(255,255,255,0.1)' } } } })
+  chart.tooltip({ showMarkers: true })
+  chart.line().position('time*value').color('#5b8ff9')
+  chart.point().position('time*value').color('#5b8ff9').shape('circle')
   chart.interaction('active-region')
   chart.render()
-  charts.newcomers = chart
+  charts.attendanceChart = chart
 }
 
-async function loadAll() {
+function renderLateEarlyChart() {
+  const container = document.getElementById('lateEarlyChart')
+  if (!container) return
+  destroyChart('lateEarlyChart')
+
+  const data = overview.lateEarlyTrend.flatMap((item) => [
+    {
+      time: item.time,
+      type: '迟到',
+      value: Number(item.lateValue || 0)
+    },
+    {
+      time: item.time,
+      type: '早退',
+      value: Number(item.earlyValue || 0)
+    }
+  ])
+
+  const chart = new Chart({
+    container: 'lateEarlyChart',
+    autoFit: true,
+    height: 320,
+    padding: [28, 30, 42, 48]
+  })
+  chart.data(data)
+  chart.axis('value', { grid: { line: { style: { stroke: 'rgba(255,255,255,0.1)' } } } })
+  chart.tooltip({ showMarkers: true, shared: true })
+  chart.line().position('time*value').color('type')
+  chart.point().position('time*value').color('type')
+  chart.interaction('active-region')
+  chart.render()
+  charts.lateEarlyChart = chart
+}
+
+function renderAmountChart(containerId, chartKey, titleData, colorHex) {
+  const container = document.getElementById(containerId)
+  if (!container) return
+  destroyChart(chartKey)
+
+  const chart = new Chart({
+    container: containerId,
+    autoFit: true,
+    height: 320,
+    padding: [28, 30, 42, 48]
+  })
+  chart.data(titleData)
+  chart.axis('value', { grid: { line: { style: { stroke: 'rgba(255,255,255,0.1)' } } } })
+  chart.tooltip({ showMarkers: true })
+  chart.area().position('time*value').color(colorHex).shape('smooth')
+  chart.line().position('time*value').color(colorHex).shape('smooth')
+  chart.point().position('time*value').color(colorHex)
+  chart.interaction('active-region')
+  chart.render()
+  charts[chartKey] = chart
+}
+
+function renderAllCharts() {
+  renderDepartmentChart()
+  renderLeaveRatioChart()
+  renderAttendanceChart()
+  renderLateEarlyChart()
+  renderAmountChart('assetChart', 'assetChart', overview.assetAmountTrend, '#61d9a2')
+  renderAmountChart('salaryChart', 'salaryChart', overview.salaryAmountTrend, '#f6bd16')
+}
+
+async function loadOverview() {
   try {
-    const [educationData, ageData, newData, repairData] = await Promise.all([
-      getEducationStats(),
-      getAgeStats(),
-      getNewEmployeeStats(),
-      getCheckRepairStats({ month: repairMonth.value })
-    ])
-    education.value = Array.isArray(educationData) ? educationData : []
-    age.value = Array.isArray(ageData) ? ageData : []
-    newcomers.value = Array.isArray(newData) ? newData : []
-    setRepairStats(repairData)
+    const data = await getStatisticsOverview({
+      month: query.month,
+      months: query.months
+    })
+    Object.assign(overview, {
+      range: data?.range || overview.range,
+      departmentDistribution: Array.isArray(data?.departmentDistribution) ? data.departmentDistribution : [],
+      attendanceTrend: Array.isArray(data?.attendanceTrend) ? data.attendanceTrend : [],
+      lateEarlyTrend: Array.isArray(data?.lateEarlyTrend) ? data.lateEarlyTrend : [],
+      leaveTypeRatio: Array.isArray(data?.leaveTypeRatio) ? data.leaveTypeRatio : [],
+      assetAmountTrend: Array.isArray(data?.assetAmountTrend) ? data.assetAmountTrend : [],
+      salaryAmountTrend: Array.isArray(data?.salaryAmountTrend) ? data.salaryAmountTrend : []
+    })
     await nextTick()
-    renderRepairTypes()
-    renderEducation()
-    renderAge()
-    renderNewcomers()
+    renderAllCharts()
   } catch (error) {
     ElMessage.error('统计数据加载失败')
   }
 }
 
-async function loadRepairStats() {
-  try {
-    const data = await getCheckRepairStats({ month: repairMonth.value })
-    setRepairStats(data)
-    await nextTick()
-    renderRepairTypes()
-  } catch (error) {
-    ElMessage.error('补卡统计加载失败')
-  }
-}
-
-function createRepairStats() {
-  return {
-    total: 0,
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-    revoked: 0,
-    topEmployees: [],
-    typeItems: []
-  }
-}
-
-function setRepairStats(data = {}) {
-  Object.assign(repairStats, createRepairStats(), data || {})
-  topEmployeeName.value = repairStats.topEmployees?.[0]?.employeeName || '-'
-}
-
-function getMonthText(date) {
-  const pad = (value) => String(value).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`
-}
-
-onMounted(loadAll)
+onMounted(loadOverview)
 
 onBeforeUnmount(() => {
-  destroyChart('repairTypes')
-  destroyChart('education')
-  destroyChart('age')
-  destroyChart('newcomers')
+  destroyAllCharts()
 })
 </script>
 
@@ -240,16 +298,20 @@ onBeforeUnmount(() => {
   gap: 16px;
 }
 
-.chart-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+.span-select {
+  width: 120px;
 }
 
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .wide {
@@ -271,3 +333,4 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+

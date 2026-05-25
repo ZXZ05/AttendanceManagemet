@@ -6,6 +6,28 @@
       </template>
     </PageHeader>
 
+    <DataToolbar>
+      <template #left>
+        <el-select v-model="query.status" clearable placeholder="审批状态">
+          <el-option label="待审批" value="0" />
+          <el-option label="已通过" value="1" />
+          <el-option label="已驳回" value="2" />
+          <el-option label="已撤销" value="3" />
+        </el-select>
+        <el-select v-model="query.sortType" placeholder="排序方式">
+          <el-option label="申请时间-最新" value="timeDesc" />
+          <el-option label="申请时间-最早" value="timeAsc" />
+          <el-option label="价格-从高到低" value="priceDesc" />
+          <el-option label="价格-从低到高" value="priceAsc" />
+        </el-select>
+        <el-input v-model.trim="query.keyword" clearable placeholder="资产名称/编号" @keyup.enter="searchData" />
+      </template>
+      <template #right>
+        <el-button type="primary" @click="searchData">查询</el-button>
+        <el-button @click="resetSearch">重置</el-button>
+      </template>
+    </DataToolbar>
+
     <div v-if="tableData.length" class="request-grid">
       <el-card v-for="item in tableData" :key="item.id" shadow="never" class="request-card">
         <template #header>
@@ -20,6 +42,16 @@
       </el-card>
     </div>
     <EmptyState v-else description="暂无固定资产申请" />
+    <div class="pagination-wrap">
+      <el-pagination
+        v-model:current-page="pagination.page"
+        v-model:page-size="pagination.pageSize"
+        background
+        layout="total, sizes, prev, pager, next, jumper"
+        :page-sizes="[8, 16, 24, 40]"
+        :total="filteredTotal"
+      />
+    </div>
 
     <FormDialog v-model="dialogVisible" :title="dialogTitle" width="680px">
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
@@ -68,6 +100,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
+import DataToolbar from '@/components/common/DataToolbar.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import FormDialog from '@/components/common/FormDialog.vue'
@@ -77,12 +110,17 @@ import { getLoginUsername } from '@/utils/auth'
 
 const loginNumber = getLoginUsername() || ''
 const { name } = useUser()
-const tableData = ref([])
+const sourceData = ref([])
 const typeList = ref([])
 const dialogVisible = ref(false)
 const isCreate = ref(false)
 const isUpdate = ref(false)
 const formRef = ref()
+const query = reactive(createQueryForm())
+const pagination = reactive({
+  page: 1,
+  pageSize: 8
+})
 
 const statusMap = {
   0: { type: 'warning' },
@@ -129,9 +167,49 @@ function createForm() {
   }
 }
 
+function createQueryForm() {
+  return {
+    status: '',
+    keyword: '',
+    sortType: 'timeDesc'
+  }
+}
+
 function resetFormData(data = createForm()) {
   Object.assign(form, data)
 }
+
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function compareBySortType(a, b, sortType) {
+  const getTime = (value) => new Date(value || '').getTime() || 0
+  const getPrice = (value) => Number(value || 0)
+  if (sortType === 'timeAsc') return getTime(a.applyTime) - getTime(b.applyTime)
+  if (sortType === 'priceDesc') return getPrice(b.price) - getPrice(a.price)
+  if (sortType === 'priceAsc') return getPrice(a.price) - getPrice(b.price)
+  return getTime(b.applyTime) - getTime(a.applyTime)
+}
+
+const filteredData = computed(() => {
+  const keyword = normalizeText(query.keyword)
+  const list = sourceData.value.filter((item) => {
+    if (query.status && String(item.status) !== String(query.status)) return false
+    if (keyword) {
+      const text = `${item.name || ''} ${item.number || ''}`
+      if (!normalizeText(text).includes(keyword)) return false
+    }
+    return true
+  })
+  return [...list].sort((a, b) => compareBySortType(a, b, query.sortType))
+})
+
+const filteredTotal = computed(() => filteredData.value.length)
+const tableData = computed(() => {
+  const start = (pagination.page - 1) * pagination.pageSize
+  return filteredData.value.slice(start, start + pagination.pageSize)
+})
 
 function statusText(status) {
   const map = {
@@ -152,13 +230,23 @@ function getCurrentDateTime() {
 async function loadData() {
   try {
     const data = await findFixedAssetByEmployeeNumber({ employeeNumber: loginNumber })
-    tableData.value = (Array.isArray(data) ? data : []).map((item) => ({
+    sourceData.value = (Array.isArray(data) ? data : []).map((item) => ({
       ...item,
       statusName: statusText(item.status)
     }))
+    pagination.page = 1
   } catch (error) {
     ElMessage.error('获取固定资产申请失败')
   }
+}
+
+function searchData() {
+  pagination.page = 1
+}
+
+function resetSearch() {
+  Object.assign(query, createQueryForm())
+  pagination.page = 1
 }
 
 async function loadTypes() {
@@ -238,6 +326,11 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .form-grid {

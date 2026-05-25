@@ -19,6 +19,8 @@ public class SalaryService {
     private EmployeeService employeeService;
     @Autowired
     private PositionService positionService;
+    @Autowired
+    private NotificationService notificationService;
 
     public int deleteById(String id) {
         return salaryDao.deleteById(id);
@@ -75,6 +77,14 @@ public class SalaryService {
         salary.setEmployeeID(check.getEmployeeID());
         salary.setMonth(check.getMonth().substring(0, 7));
         insert(salary);
+        notificationService.createNotice(
+                check.getEmployeeID(),
+                "工资条发放提醒",
+                salary.getMonth() + " 工资条已生成，请及时查看。",
+                "SALARY_ISSUED",
+                "SALARY",
+                salary.getId()
+        );
         return 0;
     }
 

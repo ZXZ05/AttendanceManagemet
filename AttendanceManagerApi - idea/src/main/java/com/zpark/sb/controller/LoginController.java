@@ -5,6 +5,8 @@ import com.zpark.sb.config.ResultCode;
 import com.zpark.sb.entity.Employee;
 import com.zpark.sb.service.AuthTokenService;
 import com.zpark.sb.service.EmployeeService;
+import com.zpark.sb.service.LoginRecordService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,10 +22,12 @@ public class LoginController {
     private EmployeeService employeeService;
     @Autowired
     private AuthTokenService authTokenService;
+    @Autowired
+    private LoginRecordService loginRecordService;
 
     @ResponseBody
     @RequestMapping(value = "/login",method = RequestMethod.POST)
-    public Result login(@RequestBody Employee employee){
+    public Result login(@RequestBody Employee employee, HttpServletRequest request){
         if (employee == null
                 || isBlank(employee.getNumber())
                 || isBlank(employee.getPassword())) {
@@ -43,6 +47,7 @@ public class LoginController {
         }
         if(s == 1){
             String token = authTokenService.createToken(employee1.getNumber());
+            loginRecordService.recordSuccess(employee1, request);
             return Result.success(buildLoginUser(employee1, token));
         }else if(s == 0){
             return Result.failure(ResultCode.USER_LOGIN_ERROR);
@@ -55,7 +60,7 @@ public class LoginController {
 
     @ResponseBody
     @RequestMapping(value = "/register", method = RequestMethod.POST)
-    public Result register(@RequestBody Employee employee) {
+    public Result register(@RequestBody Employee employee, HttpServletRequest request) {
         if (employee == null
                 || isBlank(employee.getNumber())
                 || isBlank(employee.getPassword())
@@ -72,6 +77,7 @@ public class LoginController {
         }
         Employee saved = employeeService.findByNumber(employee.getNumber());
         String token = authTokenService.createToken(saved.getNumber());
+        loginRecordService.recordSuccess(saved, request);
         return Result.success(buildLoginUser(saved, token));
     }
 

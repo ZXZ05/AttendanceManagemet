@@ -21,6 +21,8 @@ public interface EmployeeDao {
 
     Employee findByNumber(@Param("number")String number);
 
+    Employee findDetailByNumber(@Param("number")String number);
+
     List<Employee> findByNameAndDepartment(Employee employee);
 
     Employee getMinister(Employee employee);

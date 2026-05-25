@@ -26,6 +26,10 @@ import java.util.UUID;
 @Service
 public class TaskService {
 
+    public static final String TASK_TYPE_LEAVE = "1";
+    public static final String TASK_TYPE_FIXEDASSET_BUY = "2";
+    public static final String TASK_TYPE_FIXEDASSET_SCRAP = "3";
+
     @Autowired
     private TaskDao taskDao;
     @Autowired
@@ -42,6 +46,8 @@ public class TaskService {
     private LeaveTypeService leaveTypeService;
     @Autowired
     private FixedassetTypeService fixedassetTypeService;
+    @Autowired
+    private NotificationService notificationService;
 
     public int deleteById(String id) {
         return taskDao.deleteById(id);
@@ -49,6 +55,14 @@ public class TaskService {
 
     public int insert(Task task) {
         taskDao.insert(task);
+        notificationService.createNotice(
+                task.getReceiveNumber(),
+                "待审批提醒",
+                "您有新的待审批任务: " + (task.getName() == null ? "-" : task.getName()),
+                "PENDING_APPROVAL",
+                "TASK",
+                task.getId()
+        );
         return 0;
     }
 
@@ -94,8 +108,9 @@ public class TaskService {
             return 1;
         }
 
-        String type = resolveTypeName(task.getTypeID());
-        task.setType(type);
+        String typeID = task.getTypeID();
+        String typeName = resolveTypeName(typeID);
+        task.setType(typeName);
         Apply apply = taskDao.findByApplyID(task);
         if (apply == null) {
             return 1;
@@ -105,7 +120,7 @@ public class TaskService {
             task.setStatus("1");
             taskDao.update(task);
 
-            if ("请假申请".equals(type)) {
+            if (TASK_TYPE_LEAVE.equals(typeID)) {
                 Leave leave = leaveDao.selectById(apply.getId());
                 if (leave == null) {
                     return 1;
@@ -139,7 +154,7 @@ public class TaskService {
                     item.setRemarks(remarks);
                     checkService.insert(item);
                 }
-            } else if ("固定资产购置申请".equals(type) || "固定资产报废申请".equals(type)) {
+            } else if (TASK_TYPE_FIXEDASSET_BUY.equals(typeID) || TASK_TYPE_FIXEDASSET_SCRAP.equals(typeID)) {
                 Fixedassets fixedassets = fixedassetsDao.selectById(apply.getId());
                 if (fixedassets == null) {
                     return 1;
@@ -152,7 +167,7 @@ public class TaskService {
                     fixedassetType.setQuantity(quantity + 1);
                     fixedassetTypeService.update(fixedassetType);
                 }
-            } else if ("考勤补卡申请".equals(type)) {
+            } else if (CheckRepairService.TASK_TYPE_ID.equals(typeID)) {
                 CheckRepair checkRepair = checkRepairDao.selectById(apply.getId());
                 if (checkRepair == null) {
                     return 1;
@@ -161,31 +176,33 @@ public class TaskService {
                 checkRepairDao.update(checkRepair);
                 checkService.repairAttendance(checkRepair);
             }
+            notifyApprovalResult(apply, typeID, true);
             return 0;
         }
 
         if ("no".equals(task.getAdvice())) {
             task.setStatus("2");
             taskDao.update(task);
-            if ("请假申请".equals(type)) {
+            if (TASK_TYPE_LEAVE.equals(typeID)) {
                 Leave leave = leaveDao.selectById(apply.getId());
                 if (leave != null) {
                     leave.setStatus("2");
                     leaveDao.update(leave);
                 }
-            } else if ("固定资产购置申请".equals(type) || "固定资产报废申请".equals(type)) {
+            } else if (TASK_TYPE_FIXEDASSET_BUY.equals(typeID) || TASK_TYPE_FIXEDASSET_SCRAP.equals(typeID)) {
                 Fixedassets fixedassets = fixedassetsDao.selectById(apply.getId());
                 if (fixedassets != null) {
                     fixedassets.setStatus("2");
                     fixedassetsDao.update(fixedassets);
                 }
-            } else if ("考勤补卡申请".equals(type)) {
+            } else if (CheckRepairService.TASK_TYPE_ID.equals(typeID)) {
                 CheckRepair checkRepair = checkRepairDao.selectById(apply.getId());
                 if (checkRepair != null) {
                     checkRepair.setStatus("2");
                     checkRepairDao.update(checkRepair);
                 }
             }
+            notifyApprovalResult(apply, typeID, false);
             return 0;
         }
 
@@ -201,5 +218,31 @@ public class TaskService {
             return CheckRepairService.TASK_TYPE_NAME;
         }
         return "";
+    }
+
+    private void notifyApprovalResult(Apply apply, String typeID, boolean approved) {
+        if (apply == null || apply.getApplyNumber() == null) {
+            return;
+        }
+        String title = "审批结果提醒";
+        String resultText = approved ? "已通过" : "未通过";
+        String content;
+        if (TASK_TYPE_LEAVE.equals(typeID)) {
+            content = "您的请假申请" + resultText + "，请及时查看。";
+        } else if (TASK_TYPE_FIXEDASSET_BUY.equals(typeID) || TASK_TYPE_FIXEDASSET_SCRAP.equals(typeID)) {
+            content = "您的固定资产申请" + resultText + "，请及时查看。";
+        } else if (CheckRepairService.TASK_TYPE_ID.equals(typeID)) {
+            content = "您的补卡申请" + resultText + "，请及时查看。";
+        } else {
+            content = "您的审批申请" + resultText + "。";
+        }
+        notificationService.createNotice(
+                apply.getApplyNumber(),
+                title,
+                content,
+                "APPROVAL_RESULT",
+                "TASK",
+                apply.getId()
+        );
     }
 }

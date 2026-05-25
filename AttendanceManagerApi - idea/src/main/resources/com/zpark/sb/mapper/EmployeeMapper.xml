@@ -12,6 +12,7 @@
     <result column="type" property="type" jdbcType="VARCHAR" />
     <result column="phone" property="phone" jdbcType="VARCHAR" />
     <result column="address" property="address" jdbcType="VARCHAR" />
+    <result column="avatar" property="avatar" jdbcType="LONGVARCHAR" />
     <result column="password" property="password" jdbcType="VARCHAR" />
     <result column="entryDate" property="entryDate" jdbcType="DATE" />
     <result column="IDNumber" property="idNumber" jdbcType="VARCHAR" />
@@ -20,7 +21,7 @@
     <result column="workStatus" property="workStatus" jdbcType="VARCHAR" />
   </resultMap>
   <sql id="Base_Column_List" >
-    a.id, a.employeeNumber as number, a.employeeName as name, a.sex, a.birthday, a.departmentID, a.employeePositionID as position, a.employeeType as type, a.phone, a.address,
+    a.id, a.employeeNumber as number, a.employeeName as name, a.sex, a.birthday, a.departmentID, a.employeePositionID as position, a.employeeType as type, a.phone, a.address, a.avatar,
     a.password, a.entryDate,a.IDNumber as idNumber,a.education,a.marriage,a.workStatus
   </sql>
 
@@ -68,6 +69,9 @@
       </if>
       <if test="address != null" >
         address,
+      </if>
+      <if test="avatar != null" >
+        avatar,
       </if>
       <if test="password != null" >
         password,
@@ -118,6 +122,9 @@
       </if>
       <if test="address != null" >
         #{address},
+      </if>
+      <if test="avatar != null" >
+        #{avatar},
       </if>
       <if test="password != null" >
         #{password},
@@ -170,6 +177,9 @@
       <if test="address != null" >
         address = #{address},
       </if>
+      <if test="avatar != null" >
+        avatar = #{avatar},
+      </if>
       <if test="password != null" >
         password = #{password},
       </if>
@@ -204,6 +214,15 @@
   <select id="findByNumber" resultType="com.zpark.sb.entity.Employee">
     select
     <include refid="Base_Column_List" />
+    from employee a
+    where employeeNumber = #{number}
+  </select>
+
+  <select id="findDetailByNumber" resultType="com.zpark.sb.entity.Employee">
+    select
+    <include refid="Base_Column_List" />
+    ,(select name from department b where a.departmentID = b.id) as departmentName
+    ,(select name from position d where a.employeePositionID = d.id) as positionName
     from employee a
     where employeeNumber = #{number}
   </select>

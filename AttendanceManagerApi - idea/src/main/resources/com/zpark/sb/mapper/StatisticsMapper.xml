@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.zpark.sb.dao.StatisticsDao">
+
+  <select id="getDepartmentDistribution" resultType="java.util.HashMap">
+    select
+      d.name as type,
+      count(e.id) as value
+    from department d
+    left join employee e on e.departmentID = d.id
+    group by d.id, d.name
+    order by value desc, d.name asc
+  </select>
+
+  <select id="getAttendanceTrend" resultType="java.util.HashMap">
+    select
+      substring(a.date, 1, 7) as month,
+      count(case when a.checkOnTime is not null then 1 end) as value
+    from check1 a
+    where substring(a.date, 1, 7) between #{startMonth} and #{endMonth}
+    group by substring(a.date, 1, 7)
+    order by month asc
+  </select>
+
+  <select id="getLateEarlyTrend" resultType="java.util.HashMap">
+    select
+      substring(a.date, 1, 7) as month,
+      sum(case when a.checkOnStatus = '迟到' then 1 else 0 end) as lateValue,
+      sum(case when a.checkOffStatus = '早退' then 1 else 0 end) as earlyValue
+    from check1 a
+    where substring(a.date, 1, 7) between #{startMonth} and #{endMonth}
+    group by substring(a.date, 1, 7)
+    order by month asc
+  </select>
+
+  <select id="getLeaveTypeRatio" resultType="java.util.HashMap">
+    select
+      lt.name as type,
+      sum(cast(ifnull(a.duration, '0') as decimal(12, 2))) as value
+    from leave1 a
+    left join leavetype lt on a.typeID = lt.id
+    where a.status = '1'
+      and date_format(a.applyTime, '%Y-%m') between #{startMonth} and #{endMonth}
+    group by lt.id, lt.name
+    order by value desc, lt.name asc
+  </select>
+
+  <select id="getAssetAmountTrend" resultType="java.util.HashMap">
+    select
+      date_format(a.applyTime, '%Y-%m') as month,
+      sum(ifnull(a.price, 0)) as value
+    from fixedassets a
+    where a.status = '1'
+      and date_format(a.applyTime, '%Y-%m') between #{startMonth} and #{endMonth}
+    group by date_format(a.applyTime, '%Y-%m')
+    order by month asc
+  </select>
+
+  <select id="getSalaryAmountTrend" resultType="java.util.HashMap">
+    select
+      a.month as month,
+      sum(ifnull(a.salary, 0)) as value
+    from salary a
+    where a.month between #{startMonth} and #{endMonth}
+    group by a.month
+    order by month asc
+  </select>
+</mapper>
+

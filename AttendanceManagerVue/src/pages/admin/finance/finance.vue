@@ -10,17 +10,36 @@
     <el-tabs v-model="activeName">
       <el-tab-pane label="固定资产" name="fixed">
         <DataToolbar>
+          <template #left>
+            <el-select v-model="fixedQuery.typeID" clearable placeholder="资产类别">
+              <el-option v-for="item in fixedTypeList" :key="item.id" :label="item.name" :value="item.id" />
+            </el-select>
+            <el-select v-model="fixedQuery.status" clearable placeholder="审批状态">
+              <el-option label="待审批" value="0" />
+              <el-option label="已通过" value="1" />
+              <el-option label="已驳回" value="2" />
+              <el-option label="已撤销" value="3" />
+            </el-select>
+            <el-input v-model.trim="fixedQuery.keyword" clearable placeholder="编号/名称关键词" @keyup.enter="searchFixed" />
+          </template>
           <template #right>
+            <el-button type="primary" @click="searchFixed">查询</el-button>
+            <el-button @click="resetFixedSearch">重置</el-button>
             <el-button type="primary" @click="openCreateFixed">购置固定资产</el-button>
           </template>
         </DataToolbar>
 
         <el-card shadow="never">
-          <el-table :data="fixedList" border fit highlight-current-row>
-            <el-table-column prop="number" label="固定资产编号" min-width="150" />
-            <el-table-column prop="name" label="名称" min-width="150" />
-            <el-table-column prop="typeName" label="类别" width="130" />
-            <el-table-column prop="price" label="价格" width="120" />
+          <el-table :data="fixedTableData" border fit highlight-current-row @sort-change="handleFixedSortChange">
+            <el-table-column prop="number" label="固定资产编号" min-width="150" sortable="custom" />
+            <el-table-column prop="name" label="名称" min-width="150" sortable="custom" />
+            <el-table-column prop="typeName" label="类别" width="130" sortable="custom" />
+            <el-table-column prop="price" label="价格" width="120" sortable="custom" />
+            <el-table-column label="状态" width="120">
+              <template #default="{ row }">
+                {{ statusText(row.status) }}
+              </template>
+            </el-table-column>
             <el-table-column label="操作" width="190" fixed="right">
               <template #default="{ row }">
                 <el-button type="primary" @click="openFixedDetail(row)">详情</el-button>
@@ -28,6 +47,16 @@
               </template>
             </el-table-column>
           </el-table>
+          <div class="pagination-wrap">
+            <el-pagination
+              v-model:current-page="fixedPagination.page"
+              v-model:page-size="fixedPagination.pageSize"
+              background
+              layout="total, sizes, prev, pager, next, jumper"
+              :page-sizes="[10, 20, 50, 100]"
+              :total="fixedTotal"
+            />
+          </div>
         </el-card>
       </el-tab-pane>
 
@@ -35,27 +64,42 @@
         <DataToolbar>
           <template #left>
             <el-tag effect="light">{{ checkMonth }}</el-tag>
+            <el-input v-model.trim="salaryQuery.employeeID" clearable placeholder="员工编号" @keyup.enter="searchSalary" />
+            <el-select v-model="salaryQuery.abnormalOnly" clearable placeholder="异常筛选">
+              <el-option label="仅异常员工" :value="true" />
+            </el-select>
           </template>
           <template #right>
             <el-button type="primary" @click="loadCheckList">查询</el-button>
+            <el-button @click="resetSalarySearch">重置筛选</el-button>
             <el-button type="primary" @click="exportCheck">导出报表</el-button>
           </template>
         </DataToolbar>
 
         <el-card shadow="never">
-          <el-table :data="checkList" border fit highlight-current-row>
-            <el-table-column prop="employeeID" label="员工编号" width="130" />
-            <el-table-column prop="workDays" label="应出勤（天）" />
-            <el-table-column prop="checkDays" label="实际出勤（天）" />
-            <el-table-column prop="leaveDays" label="请假（天）" />
-            <el-table-column prop="lateDays" label="迟到（次）" />
-            <el-table-column prop="leaveEarlyDays" label="早退（次）" />
+          <el-table :data="salaryTableData" border fit highlight-current-row @sort-change="handleSalarySortChange">
+            <el-table-column prop="employeeID" label="员工编号" width="130" sortable="custom" />
+            <el-table-column prop="workDays" label="应出勤（天）" sortable="custom" />
+            <el-table-column prop="checkDays" label="实际出勤（天）" sortable="custom" />
+            <el-table-column prop="leaveDays" label="请假（天）" sortable="custom" />
+            <el-table-column prop="lateDays" label="迟到（次）" sortable="custom" />
+            <el-table-column prop="leaveEarlyDays" label="早退（次）" sortable="custom" />
             <el-table-column label="操作" width="140" fixed="right">
               <template #default="{ row }">
                 <el-button type="success" @click="payOff(row)">发放工资条</el-button>
               </template>
             </el-table-column>
           </el-table>
+          <div class="pagination-wrap">
+            <el-pagination
+              v-model:current-page="salaryPagination.page"
+              v-model:page-size="salaryPagination.pageSize"
+              background
+              layout="total, sizes, prev, pager, next, jumper"
+              :page-sizes="[10, 20, 50, 100]"
+              :total="salaryTotal"
+            />
+          </div>
         </el-card>
       </el-tab-pane>
     </el-tabs>
@@ -125,6 +169,24 @@ const isCreate = ref(false)
 const isUpdate = ref(false)
 const formRef = ref()
 const assetForm = reactive(createAssetForm())
+const fixedQuery = reactive(createFixedQuery())
+const salaryQuery = reactive(createSalaryQuery())
+const fixedPagination = reactive({
+  page: 1,
+  pageSize: 10
+})
+const salaryPagination = reactive({
+  page: 1,
+  pageSize: 10
+})
+const fixedSortState = reactive({
+  prop: '',
+  order: ''
+})
+const salarySortState = reactive({
+  prop: '',
+  order: ''
+})
 
 const dialogTitle = computed(() => (isCreate.value ? '购置固定资产' : '资产详情'))
 const showApprovalInfo = computed(() => isUpdate.value && ['1', '2'].includes(String(assetForm.status)))
@@ -156,6 +218,21 @@ function getCurrentDateTime() {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
+function createFixedQuery() {
+  return {
+    typeID: '',
+    status: '',
+    keyword: ''
+  }
+}
+
+function createSalaryQuery() {
+  return {
+    employeeID: '',
+    abnormalOnly: false
+  }
+}
+
 function createAssetForm() {
   return {
     employeeNumber: loginNumber,
@@ -178,6 +255,34 @@ function resetAssetForm(data = createAssetForm()) {
   Object.assign(assetForm, data)
 }
 
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function getSortableValue(row, prop) {
+  if (!row || !prop) return ''
+  const value = row[prop]
+  if (value == null) return ''
+  if (typeof value === 'number') return value
+  const numericValue = Number(value)
+  if (!Number.isNaN(numericValue) && String(value).trim() !== '') return numericValue
+  return String(value).trim().toLowerCase()
+}
+
+function applySort(list, state) {
+  if (!state.prop || !state.order) return list
+  const sorted = [...list]
+  const direction = state.order === 'ascending' ? 1 : -1
+  sorted.sort((a, b) => {
+    const aValue = getSortableValue(a, state.prop)
+    const bValue = getSortableValue(b, state.prop)
+    if (aValue > bValue) return direction
+    if (aValue < bValue) return -direction
+    return 0
+  })
+  return sorted
+}
+
 function statusText(status) {
   const map = {
     0: '待审批',
@@ -188,9 +293,51 @@ function statusText(status) {
   return map[String(status)] || '未知'
 }
 
+const fixedFilteredData = computed(() => {
+  const keyword = normalizeText(fixedQuery.keyword)
+  const list = fixedList.value.filter((item) => {
+    if (fixedQuery.typeID && item.typeID !== fixedQuery.typeID) return false
+    if (fixedQuery.status && String(item.status) !== String(fixedQuery.status)) return false
+    if (keyword) {
+      const text = `${item.number || ''} ${item.name || ''}`
+      if (!normalizeText(text).includes(keyword)) return false
+    }
+    return true
+  })
+  return applySort(list, fixedSortState)
+})
+
+const fixedTotal = computed(() => fixedFilteredData.value.length)
+const fixedTableData = computed(() => {
+  const start = (fixedPagination.page - 1) * fixedPagination.pageSize
+  return fixedFilteredData.value.slice(start, start + fixedPagination.pageSize)
+})
+
+const salaryFilteredData = computed(() => {
+  const employeeID = normalizeText(salaryQuery.employeeID)
+  const list = checkList.value.filter((item) => {
+    if (employeeID && !normalizeText(item.employeeID).includes(employeeID)) return false
+    if (salaryQuery.abnormalOnly) {
+      const lateDays = Number(item.lateDays || 0)
+      const leaveEarlyDays = Number(item.leaveEarlyDays || 0)
+      if (lateDays <= 0 && leaveEarlyDays <= 0) return false
+    }
+    return true
+  })
+  return applySort(list, salarySortState)
+})
+
+const salaryTotal = computed(() => salaryFilteredData.value.length)
+const salaryTableData = computed(() => {
+  const start = (salaryPagination.page - 1) * salaryPagination.pageSize
+  return salaryFilteredData.value.slice(start, start + salaryPagination.pageSize)
+})
+
 async function loadFixedList() {
   try {
-    fixedList.value = await getFixedAssetList()
+    const data = await getFixedAssetList()
+    fixedList.value = Array.isArray(data) ? data : []
+    fixedPagination.page = 1
   } catch (error) {
     ElMessage.error('获取固定资产列表失败')
   }
@@ -206,13 +353,49 @@ async function loadTypeList() {
 
 async function loadCheckList() {
   try {
-    checkList.value = await getCheckList({
+    const data = await getCheckList({
       date: checkMonth.value,
       month: checkMonth.value
     })
+    checkList.value = Array.isArray(data) ? data : []
+    salaryPagination.page = 1
   } catch (error) {
     ElMessage.error('获取考勤汇总失败')
   }
+}
+
+function searchFixed() {
+  fixedPagination.page = 1
+}
+
+function resetFixedSearch() {
+  Object.assign(fixedQuery, createFixedQuery())
+  fixedSortState.prop = ''
+  fixedSortState.order = ''
+  fixedPagination.page = 1
+}
+
+function searchSalary() {
+  salaryPagination.page = 1
+}
+
+function resetSalarySearch() {
+  Object.assign(salaryQuery, createSalaryQuery())
+  salarySortState.prop = ''
+  salarySortState.order = ''
+  salaryPagination.page = 1
+}
+
+function handleFixedSortChange({ prop, order }) {
+  fixedSortState.prop = prop || ''
+  fixedSortState.order = order || ''
+  fixedPagination.page = 1
+}
+
+function handleSalarySortChange({ prop, order }) {
+  salarySortState.prop = prop || ''
+  salarySortState.order = order || ''
+  salaryPagination.page = 1
 }
 
 async function openCreateFixed() {
@@ -312,6 +495,12 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 :deep(.el-select),
